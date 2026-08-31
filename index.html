@@ -7,7 +7,25 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="app">
+<div class="auth-gate" id="authGate">
+  <div class="auth-card">
+    <div class="auth-logo"><img src="assets/rixos-logo.png" alt="Rixos Bab Al Bahr"></div>
+    <h1>RBAB Room Guide</h1>
+    <div class="auth-sub">Rooms Controller Reference — sign in to continue</div>
+    <form id="authForm">
+      <label>Username
+        <input type="text" id="authUser" autocomplete="username" autofocus>
+      </label>
+      <label>Password
+        <input type="password" id="authPass" autocomplete="current-password">
+      </label>
+      <div class="auth-error" id="authError">Incorrect username or password.</div>
+      <button type="submit">Sign in</button>
+    </form>
+  </div>
+</div>
+
+<div class="app" id="mainApp" style="display:none">
 
   <header class="topbar">
     <div class="topbar-inner">

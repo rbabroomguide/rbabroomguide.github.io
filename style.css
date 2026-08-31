@@ -58,6 +58,7 @@ html[data-theme="dark"] {
 html, body {
   margin: 0;
   padding: 0;
+  height: 100%;
   background: var(--paper);
   color: var(--ink);
   transition: background 0.2s ease, color 0.2s ease;
@@ -71,8 +72,102 @@ html, body {
 .app {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
+
+/* ================= Auth gate ================= */
+.auth-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.auth-gate.hidden { display: none; }
+
+.auth-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 36px 34px 30px;
+  width: 100%;
+  max-width: 340px;
+  text-align: center;
+}
+.auth-logo {
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 16px;
+}
+.auth-logo img { height: 32px; display: block; }
+.auth-card h1 {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-weight: 600;
+  font-size: 22px;
+  margin: 0 0 4px;
+  color: var(--ink);
+}
+.auth-sub {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-bottom: 22px;
+}
+#authForm { display: flex; flex-direction: column; gap: 14px; text-align: left; }
+#authForm label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#authForm input {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+#authForm input:focus { outline: none; border-color: var(--bronze); }
+.auth-error {
+  display: none;
+  font-size: 12px;
+  color: var(--danger);
+  background: var(--danger-soft);
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin-top: -4px;
+}
+.auth-error.show { display: block; }
+#authForm button {
+  border: none;
+  background: var(--bronze);
+  color: #fff;
+  padding: 11px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease;
+}
+#authForm button:hover { background: var(--bronze-deep); }
 
 /* ================= Header ================= */
 header.topbar {
@@ -347,8 +442,8 @@ header.topbar {
 }
 
 /* ================= Body layout ================= */
-.body-wrap { display: flex; flex: 1; min-height: 0; }
-.plan-col { flex: 1; padding: 26px; overflow: auto; }
+.body-wrap { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+.plan-col { flex: 1; padding: 26px; overflow-y: auto; }
 
 .floor-summary {
   display: flex;
@@ -724,7 +819,9 @@ header.topbar {
 
 /* ================= Mobile ================= */
 @media (max-width: 860px) {
-  .body-wrap { flex-direction: column; }
+  .app { height: auto; min-height: 100vh; overflow: visible; }
+  .body-wrap { flex-direction: column; overflow: visible; }
+  .plan-col { overflow: visible; }
   .detail-col { width: auto; border-left: none; border-top: 1px solid var(--line); max-height: 62vh; }
   .plan-col { padding: 16px; }
   .plan-frame { padding: 18px; }
@@ -738,5 +835,4 @@ header.topbar {
   .tile .rnum { font-size: 11px; }
   .tile .rtype { font-size: 7.5px; }
   .brand .tagline { display: none; }
-  .detail-col { width: auto; }
 }

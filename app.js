@@ -49,7 +49,7 @@ const isTouch = window.matchMedia("(hover: none), (pointer: coarse)").matches;
 let currentBuilding = null;
 let currentFloor = null;
 let activeRoom = null;
-let filters = { types: new Set(), codes: new Set(), connectOnly: false, noPhotoOnly: false };
+let filters = { types: new Set(), codes: new Set(), connectOnly: false };
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -160,7 +160,7 @@ function buildFloorTabs() {
 
 function selectFloor(key) {
   currentFloor = key;
-  filters = { types: new Set(), codes: new Set(), connectOnly: false, noPhotoOnly: false };
+  filters = { types: new Set(), codes: new Set(), connectOnly: false };
   $$("#floorTabs button").forEach((btn) => btn.classList.toggle("active", btn.dataset.floor === key));
   renderFloor(key);
   clearDetail();
@@ -187,7 +187,7 @@ function renderFloor(key) {
   $("#roomCount").textContent = rooms.length;
   const withConnect = rooms.filter((r) => r.connecting != null).length;
   $("#connectCount").textContent = withConnect;
-  const noPhoto = rooms.filter((r) => !r.hasPhoto).length;
+  const noPhoto = rooms.filter((r) => !r.hasPhoto && r.type !== "PI").length;
   const photoStat = $("#photoStat");
   if (noPhoto > 0) { $("#noPhotoCount").textContent = noPhoto; photoStat.style.display = ""; }
   else { photoStat.style.display = "none"; }
@@ -304,22 +304,12 @@ function buildFilterBar(rooms) {
   });
   bar.appendChild(connChip);
 
-  const photoChip = document.createElement("button");
-  photoChip.className = "filter-chip";
-  photoChip.textContent = "Missing photo only";
-  photoChip.addEventListener("click", () => {
-    filters.noPhotoOnly = !filters.noPhotoOnly;
-    photoChip.classList.toggle("active");
-    applyFilters();
-  });
-  bar.appendChild(photoChip);
-
   const clear = document.createElement("button");
   clear.className = "filter-clear";
   clear.textContent = "Clear filters";
   clear.style.display = "none";
   clear.addEventListener("click", () => {
-    filters = { types: new Set(), codes: new Set(), connectOnly: false, noPhotoOnly: false };
+    filters = { types: new Set(), codes: new Set(), connectOnly: false };
     buildFilterBar(rooms);
     applyFilters();
   });
@@ -334,7 +324,7 @@ function buildFilterBar(rooms) {
 }
 
 function filtersActive() {
-  return filters.types.size || filters.codes.size || filters.connectOnly || filters.noPhotoOnly;
+  return filters.types.size || filters.codes.size || filters.connectOnly;
 }
 
 function applyFilters() {
@@ -351,7 +341,6 @@ function applyFilters() {
       for (const c of filters.codes) { if (!r.codes.includes(c)) { match = false; break; } }
     }
     if (filters.connectOnly && r.connecting == null) match = false;
-    if (filters.noPhotoOnly && r.hasPhoto) match = false;
 
     tile.classList.toggle("filtered-out", active && !match);
     if (match) matchCount++;
@@ -386,7 +375,7 @@ function showDetail(bkey, roomNum) {
   }
   if (room.floor !== currentFloor) {
     currentFloor = room.floor;
-    filters = { types: new Set(), codes: new Set(), connectOnly: false, noPhotoOnly: false };
+    filters = { types: new Set(), codes: new Set(), connectOnly: false };
     $$("#floorTabs button").forEach((btn) => btn.classList.toggle("active", btn.dataset.floor === room.floor));
     renderFloor(room.floor);
   }
@@ -480,7 +469,9 @@ function openDashboard() {
   let html = "";
   RBAB_DATA.buildingOrder.forEach((bkey) => {
     const b = buildingData(bkey);
-    const rooms = Object.values(b.rooms);
+    // PI (Posting Interface) rooms are non-guest-facing and never get a photo,
+    // so they're excluded from coverage tracking entirely.
+    const rooms = Object.values(b.rooms).filter((r) => r.type !== "PI");
     const withPhoto = rooms.filter((r) => r.hasPhoto).length;
     const pct = Math.round((withPhoto / rooms.length) * 100);
     html += `<div class="dash-building">
@@ -489,6 +480,7 @@ function openDashboard() {
     b.floorOrder.forEach((fkey) => {
       const f = b.floors[fkey];
       const floorRooms = rooms.filter((r) => r.floor === fkey);
+      if (!floorRooms.length) return;
       const missing = floorRooms.filter((r) => !r.hasPhoto).map((r) => r.room).sort((a, c) => a - c);
       html += `<div class="dash-floor-row">
         <span><b>${f.label}</b> — ${floorRooms.length - missing.length}/${floorRooms.length}</span>
@@ -551,8 +543,35 @@ function setupShortcuts() {
   });
 }
 
+/* ================= Auth gate =================
+   Client-side only: this deters casual link-sharing, it does not secure the
+   photos or data, which remain reachable at their direct URLs regardless. */
+const AUTH_USER = "RBABFRONT";
+const AUTH_PASS = "RoomGuide@@2026$$";
+
+function isAuthed() {
+  return localStorage.getItem("rbab-auth") === "ok";
+}
+
+function setupAuthGate() {
+  const form = $("#authForm");
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const u = $("#authUser").value.trim();
+    const p = $("#authPass").value;
+    if (u === AUTH_USER && p === AUTH_PASS) {
+      localStorage.setItem("rbab-auth", "ok");
+      $("#authGate").classList.add("hidden");
+      $("#mainApp").style.display = "";
+      initApp();
+    } else {
+      $("#authError").classList.add("show");
+    }
+  });
+}
+
 /* ================= Init ================= */
-document.addEventListener("DOMContentLoaded", () => {
+function initApp() {
   initTheme();
   if (isTouch) $("#detailHint").innerHTML = "Tap a room on the plan<br>to see its view and features.";
   buildBuildingTabs();
@@ -570,4 +589,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   selectBuilding(RBAB_DATA.buildingOrder[0]);
   renderRecent();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (isAuthed()) {
+    $("#authGate").classList.add("hidden");
+    $("#mainApp").style.display = "";
+    initApp();
+  } else {
+    setupAuthGate();
+  }
 });
