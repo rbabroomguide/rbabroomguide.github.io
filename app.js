@@ -1,21 +1,47 @@
 /* RBAB Room Guide — Rixos Bab Al Bahr
    Reads RBAB_DATA (from data.js) and renders a building- and floor-tabbed,
-   interactive room guide. */
+   interactive room guide with filtering, a coverage dashboard, a feature
+   glossary, dark mode, and recently-viewed rooms. */
 
 const TYPE_COLOR = {
-  KGA:   "var(--c-kga)",
-  KGAOV: "var(--c-kgaov)",
-  KGE:   "var(--c-kge)",
-  KGEOV: "var(--c-kgeov)",
-  TWA:   "var(--c-twa)",
-  TWAOV: "var(--c-twaov)",
-  SKA:   "var(--c-ska)",
-  SKB:   "var(--c-skb)",
-  SKC:   "var(--c-skc)",
-  SKD:   "var(--c-skd)",
-  SKP:   "var(--c-skp)",
-  SXA:   "var(--c-sxa)",
-  PI:    "var(--c-pi)",
+  KGA: "var(--c-kga)", KGAOV: "var(--c-kgaov)", KGE: "var(--c-kge)", KGEOV: "var(--c-kgeov)",
+  TWA: "var(--c-twa)", TWAOV: "var(--c-twaov)", SKA: "var(--c-ska)", SKB: "var(--c-skb)",
+  SKC: "var(--c-skc)", SKD: "var(--c-skd)", SKP: "var(--c-skp)", SXA: "var(--c-sxa)", PI: "var(--c-pi)",
+};
+
+// Feature code meanings, confirmed against the hotel's official Opera code list.
+const GLOSSARY = {
+  BAL:    { label: "Balcony", conf: "high" },
+  NBA:    { label: "No Balcony", conf: "high" },
+  S:      { label: "Small Balcony", conf: "high" },
+  KGB:    { label: "King Bed", conf: "high" },
+  TWB:    { label: "Twin Bed", conf: "high" },
+  BBE:    { label: "Bunk Bed", conf: "high" },
+  SOF:    { label: "Sofa Cum Bed", conf: "high" },
+  "1EXBED": { label: "1 Extra Bed Space in Room", conf: "high" },
+  "2EXBED": { label: "2 Extra Bed Space in Room", conf: "high" },
+  GAR:    { label: "Garden View", conf: "high" },
+  GRD:    { label: "Ground Floor", conf: "high" },
+  POO:    { label: "Pool View", conf: "high" },
+  BEA:    { label: "Beach View", conf: "high" },
+  ROA:    { label: "Road View", conf: "high" },
+  CAV:    { label: "Car Park View", conf: "high" },
+  MAN:    { label: "Main Entrance View", conf: "high" },
+  COS:    { label: "Corniche Sea View", conf: "high" },
+  TER:    { label: "Terrace", conf: "high" },
+  NSM:    { label: "Non-Smoking", conf: "high" },
+  HCA:    { label: "Disabled Room (Handicap Accessible)", conf: "high" },
+  INT:    { label: "Interconnecting Room", conf: "high" },
+  KTC:    { label: "Kitchenette", conf: "high" },
+  COR:    { label: "Corner Room", conf: "high" },
+  SA:     { label: "Small Room, No Extra Bed Space", conf: "high" },
+  ZMR:    { label: "Zumroud (building reference)", conf: "high" },
+  AMJ:    { label: "Amwaj (building reference)", conf: "high" },
+  MRM:    { label: "Marmar (building reference)", conf: "high" },
+  "1ST": { label: "First Floor", conf: "high" }, "2ND": { label: "Second Floor", conf: "high" },
+  "3RD": { label: "Third Floor", conf: "high" }, "4TH": { label: "Fourth Floor", conf: "high" },
+  "5TH": { label: "Fifth Floor", conf: "high" }, "6TH": { label: "Sixth Floor", conf: "high" },
+  "7TH": { label: "Seventh Floor", conf: "high" }, "8TH": { label: "Eighth Floor", conf: "high" },
 };
 
 const isTouch = window.matchMedia("(hover: none), (pointer: coarse)").matches;
@@ -23,45 +49,81 @@ const isTouch = window.matchMedia("(hover: none), (pointer: coarse)").matches;
 let currentBuilding = null;
 let currentFloor = null;
 let activeRoom = null;
+let filters = { types: new Set(), codes: new Set(), connectOnly: false, noPhotoOnly: false };
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-function typeColor(type) {
-  return TYPE_COLOR[type] || "var(--c-pi)";
-}
+function typeColor(type) { return TYPE_COLOR[type] || "var(--c-pi)"; }
 
 // Normalize inconsistent capitalization/spacing straight from the sheet
-// (e.g. "DELUXE KING GARDEN" / "Deluxe King  Garden" -> "Deluxe King Garden")
 function titleCase(str) {
   if (!str) return "";
   const cleaned = str.replace(/\s+/g, " ").trim();
-  return cleaned
-    .toLowerCase()
-    .split(" ")
-    .map((w) => (w.length ? w[0].toUpperCase() + w.slice(1) : w))
-    .join(" ");
+  return cleaned.toLowerCase().split(" ").map((w) => (w.length ? w[0].toUpperCase() + w.slice(1) : w)).join(" ");
 }
 
-function imgPath(building, roomNum) {
-  return `images/${building}/${roomNum}.jpg`;
-}
-
-function buildingData(key) {
-  return RBAB_DATA.buildings[key];
-}
+function imgPath(building, roomNum) { return `images/${building}/${roomNum}.jpg`; }
+function buildingData(key) { return RBAB_DATA.buildings[key]; }
 
 function findRoomAnyBuilding(roomNum) {
   for (const bkey of RBAB_DATA.buildingOrder) {
     const b = buildingData(bkey);
-    if (b.rooms[String(roomNum)]) {
-      return { building: bkey, room: b.rooms[String(roomNum)] };
-    }
+    if (b.rooms[String(roomNum)]) return { building: bkey, room: b.rooms[String(roomNum)] };
   }
   return null;
 }
 
-/* ---------------- Building tabs ---------------- */
+/* ================= Theme ================= */
+function initTheme() {
+  const saved = localStorage.getItem("rbab-theme");
+  const theme = saved || "light";
+  document.documentElement.dataset.theme = theme;
+  updateThemeIcon(theme);
+}
+function toggleTheme() {
+  const cur = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+  const next = cur === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem("rbab-theme", next);
+  updateThemeIcon(next);
+}
+function updateThemeIcon(theme) {
+  const btn = $("#themeToggle");
+  if (!btn) return;
+  btn.innerHTML = theme === "dark"
+    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>`;
+}
+
+/* ================= Recently viewed ================= */
+function getRecent() {
+  try { return JSON.parse(localStorage.getItem("rbab-recent") || "[]"); } catch (e) { return []; }
+}
+function addRecent(bkey, roomNum) {
+  let recent = getRecent().filter((r) => !(r.b === bkey && r.r === roomNum));
+  recent.unshift({ b: bkey, r: roomNum });
+  recent = recent.slice(0, 8);
+  localStorage.setItem("rbab-recent", JSON.stringify(recent));
+}
+function renderRecent() {
+  const recent = getRecent();
+  const wrap = $("#recentWrap");
+  if (!recent.length) { wrap.innerHTML = ""; return; }
+  let html = `<div class="recent-label">Recently viewed</div><div class="recent-strip">`;
+  recent.forEach((r) => {
+    const b = buildingData(r.b);
+    if (!b || !b.rooms[String(r.r)]) return;
+    html += `<button class="rchip" data-b="${r.b}" data-r="${r.r}">${r.r}</button>`;
+  });
+  html += `</div>`;
+  wrap.innerHTML = html;
+  $$(".rchip", wrap).forEach((btn) => {
+    btn.addEventListener("click", () => showDetail(btn.dataset.b, Number(btn.dataset.r)));
+  });
+}
+
+/* ================= Building / floor tabs ================= */
 function buildBuildingTabs() {
   const wrap = $("#buildingTabs");
   wrap.innerHTML = "";
@@ -79,11 +141,9 @@ function selectBuilding(key) {
   currentBuilding = key;
   $$("#buildingTabs button").forEach((b) => b.classList.toggle("active", b.dataset.building === key));
   buildFloorTabs();
-  const b = buildingData(key);
-  selectFloor(b.floorOrder[0]);
+  selectFloor(buildingData(key).floorOrder[0]);
 }
 
-/* ---------------- Floor tabs ---------------- */
 function buildFloorTabs() {
   const b = buildingData(currentBuilding);
   const wrap = $("#floorTabs");
@@ -100,15 +160,22 @@ function buildFloorTabs() {
 
 function selectFloor(key) {
   currentFloor = key;
+  filters = { types: new Set(), codes: new Set(), connectOnly: false, noPhotoOnly: false };
   $$("#floorTabs button").forEach((btn) => btn.classList.toggle("active", btn.dataset.floor === key));
   renderFloor(key);
   clearDetail();
 }
 
-/* ---------------- Grid rendering ---------------- */
+function stepFloor(delta) {
+  const b = buildingData(currentBuilding);
+  const idx = b.floorOrder.indexOf(currentFloor);
+  const next = idx + delta;
+  if (next >= 0 && next < b.floorOrder.length) selectFloor(b.floorOrder[next]);
+}
+
+/* ================= Grid rendering ================= */
 function roomsForFloor(bkey, fkey) {
-  const b = buildingData(bkey);
-  return Object.values(b.rooms).filter((r) => r.floor === fkey);
+  return Object.values(buildingData(bkey).rooms).filter((r) => r.floor === fkey);
 }
 
 function renderFloor(key) {
@@ -118,16 +185,12 @@ function renderFloor(key) {
 
   $("#floorTitle").textContent = f.label;
   $("#roomCount").textContent = rooms.length;
-  const withConnect = rooms.filter((r) => r.connecting !== null && r.connecting !== undefined).length;
+  const withConnect = rooms.filter((r) => r.connecting != null).length;
   $("#connectCount").textContent = withConnect;
   const noPhoto = rooms.filter((r) => !r.hasPhoto).length;
   const photoStat = $("#photoStat");
-  if (noPhoto > 0) {
-    $("#noPhotoCount").textContent = noPhoto;
-    photoStat.style.display = "";
-  } else {
-    photoStat.style.display = "none";
-  }
+  if (noPhoto > 0) { $("#noPhotoCount").textContent = noPhoto; photoStat.style.display = ""; }
+  else { photoStat.style.display = "none"; }
 
   const grid = $("#grid");
   grid.innerHTML = "";
@@ -143,13 +206,8 @@ function renderFloor(key) {
     tile.style.gridRow = r.row + 1;
     tile.style.background = typeColor(r.type);
     if (!r.hasPhoto) tile.classList.add("no-photo");
-
     tile.innerHTML = `<div class="rnum">${r.room}</div><div class="rtype">${r.type}</div>`;
-
-    if (r.connecting !== null && r.connecting !== undefined) {
-      tile.classList.add("link-badge");
-    }
-
+    if (r.connecting != null) tile.classList.add("link-badge");
     attachRoomEvents(tile, r.room);
     grid.appendChild(tile);
   });
@@ -165,22 +223,18 @@ function renderFloor(key) {
   });
 
   buildLegend(rooms);
+  buildFilterBar(rooms);
 }
 
 function attachRoomEvents(tile, roomNum) {
-  if (!isTouch) {
-    tile.addEventListener("mouseenter", () => showDetail(currentBuilding, roomNum));
-  }
+  if (!isTouch) tile.addEventListener("mouseenter", () => showDetail(currentBuilding, roomNum));
   tile.addEventListener("click", () => {
-    if (isTouch && activeRoom === roomNum) {
-      clearDetail();
-    } else {
-      showDetail(currentBuilding, roomNum);
-    }
+    if (isTouch && activeRoom === roomNum) clearDetail();
+    else showDetail(currentBuilding, roomNum);
   });
 }
 
-/* ---------------- Legend ---------------- */
+/* ================= Legend ================= */
 function buildLegend(rooms) {
   const types = Array.from(new Set(rooms.map((r) => r.type))).sort();
   const legend = $("#legend");
@@ -193,28 +247,129 @@ function buildLegend(rooms) {
     item.innerHTML = `<span class="swatch" style="background:${typeColor(t)}"></span>${t} — ${label}`;
     legend.appendChild(item);
   });
-  const facItem = document.createElement("div");
-  facItem.className = "item";
-  facItem.innerHTML = `<span class="swatch" style="background:var(--c-facility)"></span>Elevator`;
-  legend.appendChild(facItem);
-  const atrItem = document.createElement("div");
-  atrItem.className = "item";
-  atrItem.innerHTML = `<span class="swatch" style="background:var(--c-atrium)"></span>Atrium`;
-  legend.appendChild(atrItem);
-  const linkItem = document.createElement("div");
-  linkItem.className = "item";
-  linkItem.innerHTML = `<span class="swatch" style="background:var(--link-gold)"></span>Interconnecting room</span>`;
-  legend.appendChild(linkItem);
+  legend.insertAdjacentHTML("beforeend", `
+    <div class="item"><span class="swatch" style="background:var(--c-facility)"></span>Elevator</div>
+    <div class="item"><span class="swatch" style="background:var(--c-atrium)"></span>Atrium</div>
+    <div class="item"><span class="swatch" style="background:var(--gold-accent)"></span>Interconnecting room</div>
+  `);
 }
 
-/* ---------------- Detail panel ---------------- */
+/* ================= Filter bar ================= */
+function buildFilterBar(rooms) {
+  const bar = $("#filterBar");
+  bar.innerHTML = "";
+
+  const types = Array.from(new Set(rooms.map((r) => r.type))).sort();
+  types.forEach((t) => {
+    const chip = document.createElement("button");
+    chip.className = "filter-chip";
+    chip.textContent = t;
+    chip.addEventListener("click", () => {
+      if (filters.types.has(t)) filters.types.delete(t); else filters.types.add(t);
+      chip.classList.toggle("active");
+      applyFilters();
+    });
+    bar.appendChild(chip);
+  });
+
+  const sep1 = document.createElement("div");
+  sep1.className = "filter-sep";
+  bar.appendChild(sep1);
+
+  const codes = Array.from(new Set(rooms.flatMap((r) => r.codes))).sort();
+  codes.forEach((c) => {
+    const chip = document.createElement("button");
+    chip.className = "filter-chip";
+    chip.textContent = c;
+    chip.title = GLOSSARY[c] ? GLOSSARY[c].label : "Meaning not yet confirmed";
+    chip.addEventListener("click", () => {
+      if (filters.codes.has(c)) filters.codes.delete(c); else filters.codes.add(c);
+      chip.classList.toggle("active");
+      applyFilters();
+    });
+    bar.appendChild(chip);
+  });
+
+  const sep2 = document.createElement("div");
+  sep2.className = "filter-sep";
+  bar.appendChild(sep2);
+
+  const connChip = document.createElement("button");
+  connChip.className = "filter-chip";
+  connChip.textContent = "Interconnecting only";
+  connChip.addEventListener("click", () => {
+    filters.connectOnly = !filters.connectOnly;
+    connChip.classList.toggle("active");
+    applyFilters();
+  });
+  bar.appendChild(connChip);
+
+  const photoChip = document.createElement("button");
+  photoChip.className = "filter-chip";
+  photoChip.textContent = "Missing photo only";
+  photoChip.addEventListener("click", () => {
+    filters.noPhotoOnly = !filters.noPhotoOnly;
+    photoChip.classList.toggle("active");
+    applyFilters();
+  });
+  bar.appendChild(photoChip);
+
+  const clear = document.createElement("button");
+  clear.className = "filter-clear";
+  clear.textContent = "Clear filters";
+  clear.style.display = "none";
+  clear.addEventListener("click", () => {
+    filters = { types: new Set(), codes: new Set(), connectOnly: false, noPhotoOnly: false };
+    buildFilterBar(rooms);
+    applyFilters();
+  });
+  bar.appendChild(clear);
+
+  const count = document.createElement("span");
+  count.className = "filter-match-count";
+  count.id = "filterMatchCount";
+  bar.appendChild(count);
+
+  applyFilters();
+}
+
+function filtersActive() {
+  return filters.types.size || filters.codes.size || filters.connectOnly || filters.noPhotoOnly;
+}
+
+function applyFilters() {
+  const rooms = roomsForFloor(currentBuilding, currentFloor);
+  const active = filtersActive();
+  let matchCount = 0;
+
+  rooms.forEach((r) => {
+    const tile = $(`.tile.room-tile[data-room="${r.room}"]`);
+    if (!tile) return;
+    let match = true;
+    if (filters.types.size && !filters.types.has(r.type)) match = false;
+    if (filters.codes.size) {
+      for (const c of filters.codes) { if (!r.codes.includes(c)) { match = false; break; } }
+    }
+    if (filters.connectOnly && r.connecting == null) match = false;
+    if (filters.noPhotoOnly && r.hasPhoto) match = false;
+
+    tile.classList.toggle("filtered-out", active && !match);
+    if (match) matchCount++;
+  });
+
+  const clearBtn = $(".filter-clear", $("#filterBar"));
+  const countEl = $("#filterMatchCount");
+  if (clearBtn) clearBtn.style.display = active ? "" : "none";
+  if (countEl) countEl.textContent = active ? `${matchCount} of ${rooms.length} match` : "";
+}
+
+/* ================= Detail panel ================= */
 function clearDetail() {
   activeRoom = null;
   $("#detailEmpty").style.display = "flex";
   $("#detailRoom").classList.remove("show");
-  $$(".tile.room-tile").forEach((t) => {
-    t.classList.remove("active", "linked", "dim");
-  });
+  $$(".tile.room-tile").forEach((t) => t.classList.remove("active", "linked", "dim"));
+  renderRecent();
 }
 
 function showDetail(bkey, roomNum) {
@@ -222,8 +377,8 @@ function showDetail(bkey, roomNum) {
   const room = b.rooms[String(roomNum)];
   if (!room) return;
   activeRoom = roomNum;
+  addRecent(bkey, roomNum);
 
-  // switch building/floor if needed (e.g. jumping via search or a connecting-room card)
   if (bkey !== currentBuilding) {
     currentBuilding = bkey;
     $$("#buildingTabs button").forEach((btn) => btn.classList.toggle("active", btn.dataset.building === bkey));
@@ -231,6 +386,7 @@ function showDetail(bkey, roomNum) {
   }
   if (room.floor !== currentFloor) {
     currentFloor = room.floor;
+    filters = { types: new Set(), codes: new Set(), connectOnly: false, noPhotoOnly: false };
     $$("#floorTabs button").forEach((btn) => btn.classList.toggle("active", btn.dataset.floor === room.floor));
     renderFloor(room.floor);
   }
@@ -260,6 +416,7 @@ function showDetail(bkey, roomNum) {
       const tag = document.createElement("span");
       tag.className = "tag";
       tag.textContent = c;
+      tag.title = GLOSSARY[c] ? `${GLOSSARY[c].label}${GLOSSARY[c].conf === "low" ? " (unconfirmed)" : ""}` : "Meaning not yet confirmed";
       tagsWrap.appendChild(tag);
     });
   } else {
@@ -267,7 +424,7 @@ function showDetail(bkey, roomNum) {
   }
 
   const connectWrap = $("#dConnect");
-  if (room.connecting !== null && room.connecting !== undefined) {
+  if (room.connecting != null) {
     const other = b.rooms[String(room.connecting)];
     connectWrap.innerHTML = `<div class="connect-title">🔗 Interconnecting with Room ${room.connecting}</div>`;
     const card = document.createElement("div");
@@ -280,10 +437,7 @@ function showDetail(bkey, roomNum) {
           : `<div class="thumb-empty">No photo available yet</div>`
       }</div>
       <div class="cmeta">
-        <div>
-          <strong>Room ${room.connecting}</strong><br>
-          <span class="ctype">${other ? `${other.type} — ${otherLabel}` : ""}</span>
-        </div>
+        <div><strong>Room ${room.connecting}</strong><br><span class="ctype">${other ? `${other.type} — ${otherLabel}` : ""}</span></div>
         <span class="go">View room →</span>
       </div>`;
     if (other && other.hasPhoto) {
@@ -299,61 +453,121 @@ function showDetail(bkey, roomNum) {
   }
 
   highlightConnections(room);
+  renderRecent();
 }
 
 function highlightConnections(room) {
   $$(".tile.room-tile").forEach((t) => {
     const rn = Number(t.dataset.room);
     t.classList.remove("active", "linked", "dim");
-    if (rn === room.room) {
-      t.classList.add("active");
-    } else if (room.connecting !== null && room.connecting !== undefined && rn === room.connecting) {
-      t.classList.add("linked");
-    } else {
-      t.classList.add("dim");
-    }
+    if (rn === room.room) t.classList.add("active");
+    else if (room.connecting != null && rn === room.connecting) t.classList.add("linked");
+    else t.classList.add("dim");
   });
 }
 
-/* ---------------- Lightbox ---------------- */
+/* ================= Lightbox ================= */
 function openLightbox(src, caption) {
-  const lb = $("#lightbox");
   $("#lbImg").src = src;
   $("#lbCaption").textContent = caption || "";
-  lb.classList.add("show");
+  $("#lightbox").classList.add("show");
 }
+function closeLightbox() { $("#lightbox").classList.remove("show"); }
 
-function closeLightbox() {
-  $("#lightbox").classList.remove("show");
+/* ================= Coverage dashboard ================= */
+function openDashboard() {
+  const wrap = $("#dashBody");
+  let html = "";
+  RBAB_DATA.buildingOrder.forEach((bkey) => {
+    const b = buildingData(bkey);
+    const rooms = Object.values(b.rooms);
+    const withPhoto = rooms.filter((r) => r.hasPhoto).length;
+    const pct = Math.round((withPhoto / rooms.length) * 100);
+    html += `<div class="dash-building">
+      <h3>${b.label} <span class="pct">${withPhoto} / ${rooms.length} rooms photographed (${pct}%)</span></h3>
+      <div class="dash-bar"><div class="dash-bar-fill" style="width:${pct}%"></div></div>`;
+    b.floorOrder.forEach((fkey) => {
+      const f = b.floors[fkey];
+      const floorRooms = rooms.filter((r) => r.floor === fkey);
+      const missing = floorRooms.filter((r) => !r.hasPhoto).map((r) => r.room).sort((a, c) => a - c);
+      html += `<div class="dash-floor-row">
+        <span><b>${f.label}</b> — ${floorRooms.length - missing.length}/${floorRooms.length}</span>
+        <span class="missing-list">${missing.length ? missing.join(", ") : "complete"}</span>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  wrap.innerHTML = html;
+  $("#dashboardModal").classList.add("show");
 }
+function closeDashboard() { $("#dashboardModal").classList.remove("show"); }
 
-/* ---------------- Search (global across all buildings) ---------------- */
+/* ================= Glossary ================= */
+function openGlossary() {
+  const wrap = $("#glossBody");
+  const rows = Object.entries(GLOSSARY).sort((a, b) => a[0].localeCompare(b[0]));
+  let html = `<table class="gloss-table"><thead><tr><th>Code</th><th>Meaning</th><th>Confidence</th></tr></thead><tbody>`;
+  rows.forEach(([code, info]) => {
+    const badgeClass = info.conf === "high" ? "conf-high" : info.conf === "med" ? "conf-med" : "conf-low";
+    const badgeLabel = info.conf === "high" ? "Confirmed" : info.conf === "med" ? "Likely" : "Unconfirmed";
+    html += `<tr><td><code>${code}</code></td><td>${info.label}</td><td><span class="conf-badge ${badgeClass}">${badgeLabel}</span></td></tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+  $("#glossaryModal").classList.add("show");
+}
+function closeGlossary() { $("#glossaryModal").classList.remove("show"); }
+
+/* ================= Search ================= */
 function setupSearch() {
   const input = $("#searchInput");
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
-      const val = input.value.trim();
-      const found = findRoomAnyBuilding(val);
-      if (found) {
-        showDetail(found.building, found.room.room);
-        input.value = "";
-        input.blur();
-      }
+      const found = findRoomAnyBuilding(input.value.trim());
+      if (found) { showDetail(found.building, found.room.room); input.value = ""; input.blur(); }
     }
   });
 }
 
-/* ---------------- Init ---------------- */
+/* ================= Keyboard shortcuts ================= */
+function setupShortcuts() {
+  document.addEventListener("keydown", (e) => {
+    const typing = ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName);
+
+    if (e.key === "Escape") {
+      if ($("#lightbox").classList.contains("show")) closeLightbox();
+      else if ($("#dashboardModal").classList.contains("show")) closeDashboard();
+      else if ($("#glossaryModal").classList.contains("show")) closeGlossary();
+      else if (typing) document.activeElement.blur();
+      else clearDetail();
+      return;
+    }
+    if (typing) return;
+
+    if (e.key === "/") { e.preventDefault(); $("#searchInput").focus(); }
+    else if (e.key === "d" || e.key === "D") { toggleTheme(); }
+    else if (e.key === "ArrowLeft") { stepFloor(-1); }
+    else if (e.key === "ArrowRight") { stepFloor(1); }
+  });
+}
+
+/* ================= Init ================= */
 document.addEventListener("DOMContentLoaded", () => {
-  if (isTouch) {
-    $("#detailHint").innerHTML = "Tap a room on the plan<br>to see its view and features.";
-  }
+  initTheme();
+  if (isTouch) $("#detailHint").innerHTML = "Tap a room on the plan<br>to see its view and features.";
   buildBuildingTabs();
   setupSearch();
-  const lb = $("#lightbox");
-  lb.addEventListener("click", closeLightbox);
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeLightbox();
-  });
+  setupShortcuts();
+
+  $("#themeToggle").addEventListener("click", toggleTheme);
+  $("#dashboardBtn").addEventListener("click", openDashboard);
+  $("#glossaryBtn").addEventListener("click", openGlossary);
+  $("#dashboardModal").addEventListener("click", (e) => { if (e.target.id === "dashboardModal") closeDashboard(); });
+  $("#glossaryModal").addEventListener("click", (e) => { if (e.target.id === "glossaryModal") closeGlossary(); });
+  $("#dashboardClose").addEventListener("click", closeDashboard);
+  $("#glossaryClose").addEventListener("click", closeGlossary);
+  $("#lightbox").addEventListener("click", closeLightbox);
+
   selectBuilding(RBAB_DATA.buildingOrder[0]);
+  renderRecent();
 });
