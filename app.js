@@ -64,6 +64,7 @@ function titleCase(str) {
 }
 
 function imgPath(building, roomNum) { return `images/${building}/${roomNum}.jpg`; }
+function thumbPath(building, roomNum) { return `thumbs/${building}/${roomNum}.jpg`; }
 function buildingData(key) { return RBAB_DATA.buildings[key]; }
 
 function findRoomAnyBuilding(roomNum) {
@@ -141,13 +142,20 @@ function selectBuilding(key) {
   currentBuilding = key;
   $$("#buildingTabs button").forEach((b) => b.classList.toggle("active", b.dataset.building === key));
   buildFloorTabs();
-  selectFloor(buildingData(key).floorOrder[0]);
+  selectFloor("overview");
 }
 
 function buildFloorTabs() {
   const b = buildingData(currentBuilding);
   const wrap = $("#floorTabs");
   wrap.innerHTML = "";
+
+  const ovBtn = document.createElement("button");
+  ovBtn.textContent = "Overview";
+  ovBtn.dataset.floor = "overview";
+  ovBtn.addEventListener("click", () => selectFloor("overview"));
+  wrap.appendChild(ovBtn);
+
   b.floorOrder.forEach((key) => {
     const f = b.floors[key];
     const btn = document.createElement("button");
@@ -162,12 +170,24 @@ function selectFloor(key) {
   currentFloor = key;
   filters = { types: new Set(), codes: new Set(), connectOnly: false };
   $$("#floorTabs button").forEach((btn) => btn.classList.toggle("active", btn.dataset.floor === key));
-  renderFloor(key);
+
+  if (key === "overview") {
+    $("#overviewWrap").style.display = "";
+    $("#floorWrap").style.display = "none";
+    $("#filterBar").style.display = "none";
+    renderOverview(currentBuilding);
+  } else {
+    $("#overviewWrap").style.display = "none";
+    $("#floorWrap").style.display = "";
+    $("#filterBar").style.display = "";
+    renderFloor(key);
+  }
   clearDetail();
 }
 
 function stepFloor(delta) {
   const b = buildingData(currentBuilding);
+  if (currentFloor === "overview") return;
   const idx = b.floorOrder.indexOf(currentFloor);
   const next = idx + delta;
   if (next >= 0 && next < b.floorOrder.length) selectFloor(b.floorOrder[next]);
@@ -179,6 +199,13 @@ function roomsForFloor(bkey, fkey) {
 }
 
 function renderFloor(key) {
+  const grid = $("#grid");
+  grid.classList.add("transitioning");
+  renderFloorContent(key);
+  requestAnimationFrame(() => requestAnimationFrame(() => grid.classList.remove("transitioning")));
+}
+
+function renderFloorContent(key) {
   const b = buildingData(currentBuilding);
   const f = b.floors[key];
   const rooms = roomsForFloor(currentBuilding, key);
@@ -204,9 +231,17 @@ function renderFloor(key) {
     tile.dataset.room = r.room;
     tile.style.gridColumn = r.col + 1;
     tile.style.gridRow = r.row + 1;
-    tile.style.background = typeColor(r.type);
-    if (!r.hasPhoto) tile.classList.add("no-photo");
-    tile.innerHTML = `<div class="rnum">${r.room}</div><div class="rtype">${r.type}</div>`;
+
+    if (r.hasPhoto) {
+      tile.classList.add("has-thumb");
+      tile.style.backgroundImage = `linear-gradient(to bottom, rgba(20,15,10,0.18), rgba(20,15,10,0.62)), url(${thumbPath(currentBuilding, r.room)})`;
+      tile.innerHTML = `<span class="type-dot" style="background:${typeColor(r.type)}"></span><div class="rnum">${r.room}</div><div class="rtype">${r.type}</div>`;
+    } else {
+      tile.style.background = typeColor(r.type);
+      tile.classList.add("no-photo");
+      tile.innerHTML = `<div class="rnum">${r.room}</div><div class="rtype">${r.type}</div>`;
+    }
+
     if (r.connecting != null) tile.classList.add("link-badge");
     attachRoomEvents(tile, r.room);
     grid.appendChild(tile);
@@ -233,6 +268,60 @@ function attachRoomEvents(tile, roomNum) {
     else showDetail(currentBuilding, roomNum);
   });
 }
+
+/* ================= Building overview ================= */
+function renderOverview(bkey) {
+  const b = buildingData(bkey);
+  const allRooms = Object.values(b.rooms);
+  const guestRooms = allRooms.filter((r) => r.type !== "PI");
+  const withPhoto = guestRooms.filter((r) => r.hasPhoto).length;
+  const pct = Math.round((withPhoto / guestRooms.length) * 100);
+  const withConnect = allRooms.filter((r) => r.connecting != null).length;
+
+  const typeCounts = {};
+  guestRooms.forEach((r) => { typeCounts[r.type] = (typeCounts[r.type] || 0) + 1; });
+  const maxCount = Math.max(...Object.values(typeCounts));
+
+  let html = `
+    <div class="overview-stats">
+      <div class="ov-stat-card"><div class="ov-num">${allRooms.length}</div><div class="ov-label">Total Rooms</div></div>
+      <div class="ov-stat-card"><div class="ov-num">${b.floorOrder.length}</div><div class="ov-label">Floors</div></div>
+      <div class="ov-stat-card"><div class="ov-num">${withConnect}</div><div class="ov-label">Interconnecting</div></div>
+      <div class="ov-stat-card"><div class="ov-num">${pct}%</div><div class="ov-label">Photo Coverage</div></div>
+    </div>
+
+    <div class="ov-type-bars">`;
+  Object.entries(typeCounts).sort((a, b2) => b2[1] - a[1]).forEach(([t, count]) => {
+    html += `<div class="ov-type-row">
+      <span class="ov-type-label">${t}</span>
+      <span class="ov-type-track"><span class="ov-type-fill" style="width:${(count / maxCount) * 100}%; background:${typeColor(t)}"></span></span>
+      <span class="ov-type-count">${count}</span>
+    </div>`;
+  });
+  html += `</div><div class="ov-floor-list">`;
+
+  b.floorOrder.forEach((fkey) => {
+    const f = b.floors[fkey];
+    const floorRooms = allRooms.filter((r) => r.floor === fkey);
+    const floorGuestRooms = floorRooms.filter((r) => r.type !== "PI");
+    const floorPhoto = floorGuestRooms.filter((r) => r.hasPhoto).length;
+    const floorPct = floorGuestRooms.length ? Math.round((floorPhoto / floorGuestRooms.length) * 100) : 100;
+    html += `<div class="ov-floor-card" data-floor="${fkey}">
+      <span class="ov-floor-name">${f.label}</span>
+      <span class="ov-floor-bar"><span class="ov-floor-fill" style="width:${floorPct}%"></span></span>
+      <span class="ov-floor-stat">${floorRooms.length} rooms · ${floorPct}% photographed</span>
+      <span class="ov-floor-arrow">→</span>
+    </div>`;
+  });
+  html += `</div>`;
+
+  const wrap = $("#overviewWrap");
+  wrap.innerHTML = html;
+  $$(".ov-floor-card", wrap).forEach((card) => {
+    card.addEventListener("click", () => selectFloor(card.dataset.floor));
+  });
+}
+
 
 /* ================= Legend ================= */
 function buildLegend(rooms) {
@@ -377,6 +466,9 @@ function showDetail(bkey, roomNum) {
     currentFloor = room.floor;
     filters = { types: new Set(), codes: new Set(), connectOnly: false };
     $$("#floorTabs button").forEach((btn) => btn.classList.toggle("active", btn.dataset.floor === room.floor));
+    $("#overviewWrap").style.display = "none";
+    $("#floorWrap").style.display = "";
+    $("#filterBar").style.display = "";
     renderFloor(room.floor);
   }
 
@@ -392,10 +484,16 @@ function showDetail(bkey, roomNum) {
 
   const photoFrame = $("#dPhoto");
   if (room.hasPhoto) {
+    photoFrame.classList.add("skeleton");
     photoFrame.innerHTML = `<img src="${imgPath(bkey, room.room)}" alt="View from room ${room.room}">`;
-    $("#dPhoto img").addEventListener("click", () => openLightbox(imgPath(bkey, room.room), `Room ${room.room} — view`));
+    const imgEl = $("#dPhoto img");
+    imgEl.addEventListener("load", () => { imgEl.classList.add("loaded"); photoFrame.classList.remove("skeleton"); });
+    imgEl.addEventListener("click", () => openLightbox(imgPath(bkey, room.room), `Room ${room.room} — view`));
   } else {
-    photoFrame.innerHTML = `<div class="no-img">No photo available yet<br>for room ${room.room}</div>`;
+    photoFrame.classList.remove("skeleton");
+    photoFrame.innerHTML = `<div class="no-img">
+      <svg class="no-img-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3l18 18M10.5 5H17a2 2 0 0 1 2 2v9.5M3 7v10a2 2 0 0 0 2 2h11.5"/><circle cx="12" cy="13" r="3.2"/></svg><br>
+      No photo available yet<br>for room ${room.room}</div>`;
   }
 
   const tagsWrap = $("#dTags");
@@ -510,14 +608,78 @@ function openGlossary() {
 }
 function closeGlossary() { $("#glossaryModal").classList.remove("show"); }
 
-/* ================= Search ================= */
+/* ================= Search (global, live dropdown) ================= */
+function allRoomsFlat() {
+  const out = [];
+  RBAB_DATA.buildingOrder.forEach((bkey) => {
+    const b = buildingData(bkey);
+    Object.values(b.rooms).forEach((r) => out.push({ building: bkey, buildingLabel: b.label, room: r }));
+  });
+  return out;
+}
+
+let searchHighlight = -1;
+
 function setupSearch() {
   const input = $("#searchInput");
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      const found = findRoomAnyBuilding(input.value.trim());
-      if (found) { showDetail(found.building, found.room.room); input.value = ""; input.blur(); }
+  const dropdown = $("#searchDropdown");
+  const allRooms = allRoomsFlat();
+
+  function renderResults(matches) {
+    searchHighlight = -1;
+    if (!matches.length) {
+      dropdown.innerHTML = `<div class="sd-empty">No matching room</div>`;
+    } else {
+      dropdown.innerHTML = matches.slice(0, 8).map((m, i) => `
+        <div class="sd-item" data-idx="${i}" data-b="${m.building}" data-r="${m.room.room}">
+          <span class="sd-room">${m.room.room}</span>
+          <span class="sd-meta">${m.buildingLabel} · ${m.room.type}</span>
+        </div>`).join("");
+      $$(".sd-item", dropdown).forEach((el) => {
+        el.addEventListener("click", () => {
+          showDetail(el.dataset.b, Number(el.dataset.r));
+          input.value = "";
+          dropdown.classList.remove("show");
+          input.blur();
+        });
+      });
     }
+    dropdown.classList.add("show");
+  }
+
+  input.addEventListener("input", () => {
+    const val = input.value.trim();
+    if (!val) { dropdown.classList.remove("show"); return; }
+    const matches = allRooms.filter((m) => String(m.room.room).startsWith(val));
+    renderResults(matches);
+  });
+
+  input.addEventListener("keydown", (e) => {
+    const items = $$(".sd-item", dropdown);
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      searchHighlight = Math.min(searchHighlight + 1, items.length - 1);
+      items.forEach((it, i) => it.classList.toggle("hl", i === searchHighlight));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      searchHighlight = Math.max(searchHighlight - 1, 0);
+      items.forEach((it, i) => it.classList.toggle("hl", i === searchHighlight));
+    } else if (e.key === "Enter") {
+      if (searchHighlight >= 0 && items[searchHighlight]) {
+        items[searchHighlight].click();
+      } else {
+        const found = findRoomAnyBuilding(input.value.trim());
+        if (found) { showDetail(found.building, found.room.room); input.value = ""; dropdown.classList.remove("show"); input.blur(); }
+      }
+    } else if (e.key === "Escape") {
+      e.stopPropagation();
+      dropdown.classList.remove("show");
+      input.blur();
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!$("#searchWrap").contains(e.target)) dropdown.classList.remove("show");
   });
 }
 
@@ -527,7 +689,8 @@ function setupShortcuts() {
     const typing = ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName);
 
     if (e.key === "Escape") {
-      if ($("#lightbox").classList.contains("show")) closeLightbox();
+      if ($("#tourOverlay").classList.contains("show")) endTour();
+      else if ($("#lightbox").classList.contains("show")) closeLightbox();
       else if ($("#dashboardModal").classList.contains("show")) closeDashboard();
       else if ($("#glossaryModal").classList.contains("show")) closeGlossary();
       else if (typing) document.activeElement.blur();
@@ -570,6 +733,60 @@ function setupAuthGate() {
   });
 }
 
+/* ================= First-visit tour ================= */
+const TOUR_STEPS = [
+  { sel: "#buildingTabs", title: "Switch buildings", text: "Jump between Zumroud, Amwaj, and Marmar here." },
+  { sel: "#floorTabs", title: "Pick a floor", text: "Overview gives you the building at a glance — or jump straight to a floor." },
+  { sel: "#filterBar", title: "Filter the floor", text: "Isolate a room type or feature, or show only interconnecting rooms." },
+  { sel: "#searchWrap", title: "Jump to any room", text: "Type a room number from any building to go straight to it." },
+  { sel: "#dashboardBtn", title: "Coverage dashboard", text: "See exactly which rooms still need a photo, floor by floor." },
+  { sel: "#glossaryBtn", title: "Feature glossary", text: "Every Opera feature code, decoded." },
+];
+let tourIdx = 0;
+
+function positionTour() {
+  const step = TOUR_STEPS[tourIdx];
+  const target = document.querySelector(step.sel);
+  if (!target) { nextTourStep(); return; }
+  const rect = target.getBoundingClientRect();
+  const pad = 6;
+  const hl = $("#tourHighlight");
+  hl.style.left = (rect.left - pad) + "px";
+  hl.style.top = (rect.top - pad) + "px";
+  hl.style.width = (rect.width + pad * 2) + "px";
+  hl.style.height = (rect.height + pad * 2) + "px";
+
+  const card = $("#tourCard");
+  $("#tourStepLabel").textContent = `Step ${tourIdx + 1} of ${TOUR_STEPS.length}`;
+  $("#tourTitle").textContent = step.title;
+  $("#tourText").textContent = step.text;
+  $("#tourNext").textContent = tourIdx === TOUR_STEPS.length - 1 ? "Done" : "Next";
+
+  const cardWidth = isTouch ? 240 : 280;
+  let top = rect.bottom + 16;
+  let left = Math.min(Math.max(rect.left, 10), window.innerWidth - cardWidth - 10);
+  if (top + 140 > window.innerHeight) top = Math.max(rect.top - 160, 10);
+  card.style.top = top + "px";
+  card.style.left = left + "px";
+}
+
+function nextTourStep() {
+  tourIdx++;
+  if (tourIdx >= TOUR_STEPS.length) { endTour(); return; }
+  positionTour();
+}
+
+function startTour() {
+  tourIdx = 0;
+  $("#tourOverlay").classList.add("show");
+  positionTour();
+}
+
+function endTour() {
+  $("#tourOverlay").classList.remove("show");
+  localStorage.setItem("rbab-tour-seen", "yes");
+}
+
 /* ================= Init ================= */
 function initApp() {
   initTheme();
@@ -587,8 +804,19 @@ function initApp() {
   $("#glossaryClose").addEventListener("click", closeGlossary);
   $("#lightbox").addEventListener("click", closeLightbox);
 
+  $("#tourBtn").addEventListener("click", startTour);
+  $("#tourNext").addEventListener("click", nextTourStep);
+  $("#tourSkip").addEventListener("click", endTour);
+  window.addEventListener("resize", () => {
+    if ($("#tourOverlay").classList.contains("show")) positionTour();
+  });
+
   selectBuilding(RBAB_DATA.buildingOrder[0]);
   renderRecent();
+
+  if (!localStorage.getItem("rbab-tour-seen")) {
+    setTimeout(startTour, 500);
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {

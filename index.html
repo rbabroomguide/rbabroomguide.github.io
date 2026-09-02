@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RBAB Room Guide — Rixos Bab Al Bahr</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -47,13 +50,15 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 3.5"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor" stroke="none"/></svg>
           Glossary
         </button>
+        <button class="icon-btn" id="tourBtn" title="Show walkthrough">?</button>
         <button class="icon-btn" id="themeToggle" title="Toggle dark mode (D)"></button>
-        <div class="search-box">
+        <div class="search-box" id="searchWrap">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
-          <input id="searchInput" type="text" placeholder="Go to room #" inputmode="numeric">
+          <input id="searchInput" type="text" placeholder="Go to room #" inputmode="numeric" autocomplete="off">
           <kbd>/</kbd>
+          <div class="search-dropdown" id="searchDropdown"></div>
         </div>
       </div>
     </div>
@@ -69,17 +74,21 @@
 
   <div class="body-wrap">
     <main class="plan-col">
-      <div class="floor-summary">
-        <h2 id="floorTitle">—</h2>
-        <div class="stat"><b id="roomCount">0</b> rooms</div>
-        <div class="stat"><b id="connectCount">0</b> interconnecting</div>
-        <div class="stat warn" id="photoStat" style="display:none"><b id="noPhotoCount">0</b> awaiting photos</div>
-      </div>
+      <div class="overview-wrap" id="overviewWrap" style="display:none"></div>
 
-      <div class="plan-frame">
-        <span class="tick-br"></span><span class="tick-bl"></span>
-        <div class="grid" id="grid"></div>
-        <div class="legend" id="legend"></div>
+      <div id="floorWrap">
+        <div class="floor-summary">
+          <h2 id="floorTitle">—</h2>
+          <div class="stat"><b id="roomCount">0</b> rooms</div>
+          <div class="stat"><b id="connectCount">0</b> interconnecting</div>
+          <div class="stat warn" id="photoStat" style="display:none"><b id="noPhotoCount">0</b> awaiting photos</div>
+        </div>
+
+        <div class="plan-frame">
+          <span class="tick-br"></span><span class="tick-bl"></span>
+          <div class="grid" id="grid"></div>
+          <div class="legend" id="legend"></div>
+        </div>
       </div>
     </main>
 
@@ -116,6 +125,19 @@
 <div class="lightbox" id="lightbox">
   <img id="lbImg" src="" alt="">
   <div class="lb-caption" id="lbCaption"></div>
+</div>
+
+<div class="tour-overlay" id="tourOverlay">
+  <div class="tour-highlight" id="tourHighlight"></div>
+  <div class="tour-card" id="tourCard">
+    <div class="tour-step" id="tourStepLabel"></div>
+    <h4 id="tourTitle"></h4>
+    <p id="tourText"></p>
+    <div class="tour-actions">
+      <button class="tour-skip" id="tourSkip">Skip</button>
+      <button class="tour-next" id="tourNext">Next</button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="dashboardModal">
