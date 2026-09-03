@@ -748,6 +748,15 @@ header.topbar {
   padding-top: 18px;
   border-top: 1px solid var(--line);
 }
+.cross-section-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--bronze-deep);
+  margin: 16px 0 8px;
+}
+.cross-section-label:first-child { margin-top: 0; }
 .cross-group { margin-bottom: 14px; }
 .cross-group:last-child { margin-bottom: 0; }
 .cross-group-label {

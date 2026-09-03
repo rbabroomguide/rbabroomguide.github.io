@@ -445,16 +445,42 @@ function renderCrossBuildingPanel(active) {
   if (!active) { panel.style.display = "none"; return; }
   panel.style.display = "";
 
-  const otherBuildings = RBAB_DATA.buildingOrder.filter((b) => b !== currentBuilding);
   let html = "";
-  let totalMatches = 0;
 
+  // Same building, other floors — grouped by floor
+  const curB = buildingData(currentBuilding);
+  const otherFloorMatches = curB.floorOrder
+    .filter((fkey) => fkey !== currentFloor)
+    .map((fkey) => ({
+      fkey,
+      label: curB.floors[fkey].label,
+      matches: Object.values(curB.rooms).filter((r) => r.floor === fkey && roomMatchesFilters(r)).sort((a, c) => a.room - c.room),
+    }))
+    .filter((g) => g.matches.length);
+
+  html += `<div class="cross-section-label">${curB.label} — Other Floors</div>`;
+  if (otherFloorMatches.length) {
+    otherFloorMatches.forEach((g) => {
+      html += `<div class="cross-group">
+        <div class="cross-group-label">${g.label} <span class="cnt">(${g.matches.length})</span></div>
+        <div class="cross-list">`;
+      g.matches.forEach((r) => {
+        html += `<span class="cross-chip" data-b="${currentBuilding}" data-r="${r.room}">${r.room}</span>`;
+      });
+      html += `</div></div>`;
+    });
+  } else {
+    html += `<div class="cross-group"><span class="cross-empty">No matches on other floors</span></div>`;
+  }
+
+  // Other buildings — grouped by building
+  const otherBuildings = RBAB_DATA.buildingOrder.filter((b) => b !== currentBuilding);
+  html += `<div class="cross-section-label">Other Buildings</div>`;
   otherBuildings.forEach((bkey) => {
     const b = buildingData(bkey);
     const matches = Object.values(b.rooms)
       .filter(roomMatchesFilters)
       .sort((a, c) => a.room - c.room);
-    totalMatches += matches.length;
     html += `<div class="cross-group">
       <div class="cross-group-label">${b.label} <span class="cnt">(${matches.length})</span></div>
       <div class="cross-list">`;
