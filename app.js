@@ -341,7 +341,11 @@ function buildFilterBar(rooms) {
   const bar = $("#filterBar");
   bar.innerHTML = "";
 
-  const types = Array.from(new Set(rooms.map((r) => r.type))).sort();
+  // Source every type/code from ALL rooms in ALL buildings, not just the current floor,
+  // so every category the hotel has is always selectable.
+  const allRooms = allRoomsFlat().map((x) => x.room);
+
+  const types = Array.from(new Set(allRooms.map((r) => r.type))).sort();
   types.forEach((t) => {
     const chip = document.createElement("button");
     chip.className = "filter-chip";
@@ -358,7 +362,7 @@ function buildFilterBar(rooms) {
   sep1.className = "filter-sep";
   bar.appendChild(sep1);
 
-  const codes = Array.from(new Set(rooms.flatMap((r) => r.codes))).sort();
+  const codes = Array.from(new Set(allRooms.flatMap((r) => r.codes))).sort();
   codes.forEach((c) => {
     const chip = document.createElement("button");
     chip.className = "filter-chip";
@@ -447,36 +451,7 @@ function renderCrossBuildingPanel(active) {
 
   let html = "";
 
-  // Same building, other floors — grouped by floor
-  const curB = buildingData(currentBuilding);
-  const otherFloorMatches = curB.floorOrder
-    .filter((fkey) => fkey !== currentFloor)
-    .map((fkey) => ({
-      fkey,
-      label: curB.floors[fkey].label,
-      matches: Object.values(curB.rooms).filter((r) => r.floor === fkey && roomMatchesFilters(r)).sort((a, c) => a.room - c.room),
-    }))
-    .filter((g) => g.matches.length);
-
-  html += `<div class="cross-section-label">${curB.label} — Other Floors</div>`;
-  if (otherFloorMatches.length) {
-    otherFloorMatches.forEach((g) => {
-      html += `<div class="cross-group">
-        <div class="cross-group-label">${g.label} <span class="cnt">(${g.matches.length})</span></div>
-        <div class="cross-list">`;
-      g.matches.forEach((r) => {
-        html += `<span class="cross-chip" data-b="${currentBuilding}" data-r="${r.room}">${r.room}</span>`;
-      });
-      html += `</div></div>`;
-    });
-  } else {
-    html += `<div class="cross-group"><span class="cross-empty">No matches on other floors</span></div>`;
-  }
-
-  // Other buildings — grouped by building
-  const otherBuildings = RBAB_DATA.buildingOrder.filter((b) => b !== currentBuilding);
-  html += `<div class="cross-section-label">Other Buildings</div>`;
-  otherBuildings.forEach((bkey) => {
+  RBAB_DATA.buildingOrder.forEach((bkey) => {
     const b = buildingData(bkey);
     const matches = Object.values(b.rooms)
       .filter(roomMatchesFilters)
