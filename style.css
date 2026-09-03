@@ -810,6 +810,17 @@ header.topbar {
   padding: 26px 28px 28px;
   position: relative;
 }
+.modal-box-wide { max-width: 900px; }
+.ov-building-block { margin-bottom: 28px; }
+.ov-building-block:last-child { margin-bottom: 0; }
+.ov-building-heading {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-weight: 600;
+  font-size: 18px;
+  margin: 0 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
 .modal-box h2 {
   font-family: "Source Serif 4", Georgia, serif;
   font-weight: 600;

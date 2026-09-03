@@ -142,19 +142,13 @@ function selectBuilding(key) {
   currentBuilding = key;
   $$("#buildingTabs button").forEach((b) => b.classList.toggle("active", b.dataset.building === key));
   buildFloorTabs();
-  selectFloor("overview");
+  selectFloor(buildingData(key).floorOrder[0]);
 }
 
 function buildFloorTabs() {
   const b = buildingData(currentBuilding);
   const wrap = $("#floorTabs");
   wrap.innerHTML = "";
-
-  const ovBtn = document.createElement("button");
-  ovBtn.textContent = "Overview";
-  ovBtn.dataset.floor = "overview";
-  ovBtn.addEventListener("click", () => selectFloor("overview"));
-  wrap.appendChild(ovBtn);
 
   b.floorOrder.forEach((key) => {
     const f = b.floors[key];
@@ -170,24 +164,12 @@ function selectFloor(key) {
   currentFloor = key;
   filters = { types: new Set(), codes: new Set(), connectOnly: false };
   $$("#floorTabs button").forEach((btn) => btn.classList.toggle("active", btn.dataset.floor === key));
-
-  if (key === "overview") {
-    $("#overviewWrap").style.display = "";
-    $("#floorWrap").style.display = "none";
-    $("#filterBar").style.display = "none";
-    renderOverview(currentBuilding);
-  } else {
-    $("#overviewWrap").style.display = "none";
-    $("#floorWrap").style.display = "";
-    $("#filterBar").style.display = "";
-    renderFloor(key);
-  }
+  renderFloor(key);
   clearDetail();
 }
 
 function stepFloor(delta) {
   const b = buildingData(currentBuilding);
-  if (currentFloor === "overview") return;
   const idx = b.floorOrder.indexOf(currentFloor);
   const next = idx + delta;
   if (next >= 0 && next < b.floorOrder.length) selectFloor(b.floorOrder[next]);
@@ -269,58 +251,69 @@ function attachRoomEvents(tile, roomNum) {
   });
 }
 
-/* ================= Building overview ================= */
-function renderOverview(bkey) {
-  const b = buildingData(bkey);
-  const allRooms = Object.values(b.rooms);
-  const guestRooms = allRooms.filter((r) => r.type !== "PI");
-  const withPhoto = guestRooms.filter((r) => r.hasPhoto).length;
-  const pct = Math.round((withPhoto / guestRooms.length) * 100);
-  const withConnect = allRooms.filter((r) => r.connecting != null).length;
+/* ================= Building overview (all buildings, modal) ================= */
+function openOverview() {
+  let html = "";
+  RBAB_DATA.buildingOrder.forEach((bkey) => {
+    const b = buildingData(bkey);
+    const allRooms = Object.values(b.rooms);
+    const guestRooms = allRooms.filter((r) => r.type !== "PI");
+    const withPhoto = guestRooms.filter((r) => r.hasPhoto).length;
+    const pct = Math.round((withPhoto / guestRooms.length) * 100);
+    const withConnect = allRooms.filter((r) => r.connecting != null).length;
 
-  const typeCounts = {};
-  guestRooms.forEach((r) => { typeCounts[r.type] = (typeCounts[r.type] || 0) + 1; });
-  const maxCount = Math.max(...Object.values(typeCounts));
+    const typeCounts = {};
+    guestRooms.forEach((r) => { typeCounts[r.type] = (typeCounts[r.type] || 0) + 1; });
+    const maxCount = Math.max(...Object.values(typeCounts));
 
-  let html = `
-    <div class="overview-stats">
-      <div class="ov-stat-card"><div class="ov-num">${allRooms.length}</div><div class="ov-label">Total Rooms</div></div>
-      <div class="ov-stat-card"><div class="ov-num">${b.floorOrder.length}</div><div class="ov-label">Floors</div></div>
-      <div class="ov-stat-card"><div class="ov-num">${withConnect}</div><div class="ov-label">Interconnecting</div></div>
-      <div class="ov-stat-card"><div class="ov-num">${pct}%</div><div class="ov-label">Photo Coverage</div></div>
-    </div>
+    html += `<div class="ov-building-block">
+      <h3 class="ov-building-heading">${b.label}</h3>
+      <div class="overview-stats">
+        <div class="ov-stat-card"><div class="ov-num">${allRooms.length}</div><div class="ov-label">Total Rooms</div></div>
+        <div class="ov-stat-card"><div class="ov-num">${b.floorOrder.length}</div><div class="ov-label">Floors</div></div>
+        <div class="ov-stat-card"><div class="ov-num">${withConnect}</div><div class="ov-label">Interconnecting</div></div>
+        <div class="ov-stat-card"><div class="ov-num">${pct}%</div><div class="ov-label">Photo Coverage</div></div>
+      </div>
 
-    <div class="ov-type-bars">`;
-  Object.entries(typeCounts).sort((a, b2) => b2[1] - a[1]).forEach(([t, count]) => {
-    html += `<div class="ov-type-row">
-      <span class="ov-type-label">${t}</span>
-      <span class="ov-type-track"><span class="ov-type-fill" style="width:${(count / maxCount) * 100}%; background:${typeColor(t)}"></span></span>
-      <span class="ov-type-count">${count}</span>
-    </div>`;
+      <div class="ov-type-bars">`;
+    Object.entries(typeCounts).sort((a, b2) => b2[1] - a[1]).forEach(([t, count]) => {
+      html += `<div class="ov-type-row">
+        <span class="ov-type-label">${t}</span>
+        <span class="ov-type-track"><span class="ov-type-fill" style="width:${(count / maxCount) * 100}%; background:${typeColor(t)}"></span></span>
+        <span class="ov-type-count">${count}</span>
+      </div>`;
+    });
+    html += `</div><div class="ov-floor-list">`;
+
+    b.floorOrder.forEach((fkey) => {
+      const f = b.floors[fkey];
+      const floorRooms = allRooms.filter((r) => r.floor === fkey);
+      const floorGuestRooms = floorRooms.filter((r) => r.type !== "PI");
+      const floorPhoto = floorGuestRooms.filter((r) => r.hasPhoto).length;
+      const floorPct = floorGuestRooms.length ? Math.round((floorPhoto / floorGuestRooms.length) * 100) : 100;
+      html += `<div class="ov-floor-card" data-building="${bkey}" data-floor="${fkey}">
+        <span class="ov-floor-name">${f.label}</span>
+        <span class="ov-floor-bar"><span class="ov-floor-fill" style="width:${floorPct}%"></span></span>
+        <span class="ov-floor-stat">${floorRooms.length} rooms · ${floorPct}% photographed</span>
+        <span class="ov-floor-arrow">→</span>
+      </div>`;
+    });
+    html += `</div></div>`;
   });
-  html += `</div><div class="ov-floor-list">`;
 
-  b.floorOrder.forEach((fkey) => {
-    const f = b.floors[fkey];
-    const floorRooms = allRooms.filter((r) => r.floor === fkey);
-    const floorGuestRooms = floorRooms.filter((r) => r.type !== "PI");
-    const floorPhoto = floorGuestRooms.filter((r) => r.hasPhoto).length;
-    const floorPct = floorGuestRooms.length ? Math.round((floorPhoto / floorGuestRooms.length) * 100) : 100;
-    html += `<div class="ov-floor-card" data-floor="${fkey}">
-      <span class="ov-floor-name">${f.label}</span>
-      <span class="ov-floor-bar"><span class="ov-floor-fill" style="width:${floorPct}%"></span></span>
-      <span class="ov-floor-stat">${floorRooms.length} rooms · ${floorPct}% photographed</span>
-      <span class="ov-floor-arrow">→</span>
-    </div>`;
-  });
-  html += `</div>`;
-
-  const wrap = $("#overviewWrap");
+  const wrap = $("#overviewBody");
   wrap.innerHTML = html;
   $$(".ov-floor-card", wrap).forEach((card) => {
-    card.addEventListener("click", () => selectFloor(card.dataset.floor));
+    card.addEventListener("click", () => {
+      closeOverview();
+      selectBuilding(card.dataset.building);
+      selectFloor(card.dataset.floor);
+    });
   });
+
+  $("#overviewModal").classList.add("show");
 }
+function closeOverview() { $("#overviewModal").classList.remove("show"); }
 
 
 /* ================= Legend ================= */
@@ -531,9 +524,6 @@ function showDetail(bkey, roomNum) {
     currentFloor = room.floor;
     filters = { types: new Set(), codes: new Set(), connectOnly: false };
     $$("#floorTabs button").forEach((btn) => btn.classList.toggle("active", btn.dataset.floor === room.floor));
-    $("#overviewWrap").style.display = "none";
-    $("#floorWrap").style.display = "";
-    $("#filterBar").style.display = "";
     renderFloor(room.floor);
   }
 
@@ -756,6 +746,7 @@ function setupShortcuts() {
     if (e.key === "Escape") {
       if ($("#tourOverlay").classList.contains("show")) endTour();
       else if ($("#lightbox").classList.contains("show")) closeLightbox();
+      else if ($("#overviewModal").classList.contains("show")) closeOverview();
       else if ($("#dashboardModal").classList.contains("show")) closeDashboard();
       else if ($("#glossaryModal").classList.contains("show")) closeGlossary();
       else if (typing) document.activeElement.blur();
@@ -801,9 +792,10 @@ function setupAuthGate() {
 /* ================= First-visit tour ================= */
 const TOUR_STEPS = [
   { sel: "#buildingTabs", title: "Switch buildings", text: "Jump between Zumroud, Amwaj, and Marmar here." },
-  { sel: "#floorTabs", title: "Pick a floor", text: "Overview gives you the building at a glance — or jump straight to a floor." },
-  { sel: "#filterBar", title: "Filter the floor", text: "Isolate a room type or feature, or show only interconnecting rooms." },
+  { sel: "#floorTabs", title: "Pick a floor", text: "Each building's floors are listed here." },
+  { sel: "#filterBar", title: "Filter the floor", text: "Isolate a room type or feature, or show only interconnecting rooms — matches in other buildings show up in the sidebar too." },
   { sel: "#searchWrap", title: "Jump to any room", text: "Type a room number from any building to go straight to it." },
+  { sel: "#overviewBtn", title: "All-buildings overview", text: "Room counts, type breakdown, and coverage for all three buildings at a glance." },
   { sel: "#dashboardBtn", title: "Coverage dashboard", text: "See exactly which rooms still need a photo, floor by floor." },
   { sel: "#glossaryBtn", title: "Feature glossary", text: "Every Opera feature code, decoded." },
 ];
@@ -861,10 +853,13 @@ function initApp() {
   setupShortcuts();
 
   $("#themeToggle").addEventListener("click", toggleTheme);
+  $("#overviewBtn").addEventListener("click", openOverview);
   $("#dashboardBtn").addEventListener("click", openDashboard);
   $("#glossaryBtn").addEventListener("click", openGlossary);
+  $("#overviewModal").addEventListener("click", (e) => { if (e.target.id === "overviewModal") closeOverview(); });
   $("#dashboardModal").addEventListener("click", (e) => { if (e.target.id === "dashboardModal") closeDashboard(); });
   $("#glossaryModal").addEventListener("click", (e) => { if (e.target.id === "glossaryModal") closeGlossary(); });
+  $("#overviewClose").addEventListener("click", closeOverview);
   $("#dashboardClose").addEventListener("click", closeDashboard);
   $("#glossaryClose").addEventListener("click", closeGlossary);
   $("#lightbox").addEventListener("click", closeLightbox);

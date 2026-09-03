@@ -42,6 +42,10 @@
       </div>
 
       <div class="header-actions">
+        <button class="text-btn" id="overviewBtn" title="All-buildings overview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Overview
+        </button>
         <button class="text-btn" id="dashboardBtn" title="Coverage dashboard">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
           Coverage
@@ -74,8 +78,6 @@
 
   <div class="body-wrap">
     <main class="plan-col">
-      <div class="overview-wrap" id="overviewWrap" style="display:none"></div>
-
       <div id="floorWrap">
         <div class="floor-summary">
           <h2 id="floorTitle">—</h2>
@@ -144,6 +146,15 @@
       <button class="tour-skip" id="tourSkip">Skip</button>
       <button class="tour-next" id="tourNext">Next</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="overviewModal">
+  <div class="modal-box modal-box-wide">
+    <button class="modal-close" id="overviewClose">✕</button>
+    <h2>All Buildings Overview</h2>
+    <div class="modal-sub">Room counts, type breakdown, and floors across Zumroud, Amwaj, and Marmar.</div>
+    <div id="overviewBody"></div>
   </div>
 </div>
 
