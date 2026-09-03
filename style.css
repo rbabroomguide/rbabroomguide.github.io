@@ -426,6 +426,85 @@ header.topbar {
 
 .filter-sep { width: 1px; height: 18px; background: var(--line); margin: 0 2px; }
 
+/* ---- searchable checkbox dropdowns ---- */
+.fdrop { position: relative; }
+.fdrop-btn {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  padding: 6px 12px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  transition: border-color 0.13s ease;
+}
+.fdrop-btn:hover { border-color: var(--bronze); }
+.fdrop-btn.has-selection { background: var(--bronze-soft); border-color: var(--bronze); color: var(--bronze-deep); }
+.fdrop-btn svg { width: 11px; height: 11px; transition: transform 0.15s ease; flex-shrink: 0; }
+.fdrop.open .fdrop-btn svg { transform: rotate(180deg); }
+.fdrop-count {
+  background: var(--bronze);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 1px 6px;
+  display: none;
+}
+.fdrop-btn.has-selection .fdrop-count { display: inline-block; }
+
+.fdrop-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 280px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  z-index: 60;
+  display: none;
+  overflow: hidden;
+}
+.fdrop.open .fdrop-panel { display: block; }
+.fdrop-search-wrap {
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.fdrop-search {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  color: var(--ink);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.fdrop-search:focus { outline: none; border-color: var(--bronze); }
+.fdrop-list { max-height: 260px; overflow-y: auto; padding: 6px; }
+.fdrop-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12.5px;
+}
+.fdrop-item:hover { background: var(--paper); }
+.fdrop-item input { margin-top: 2px; accent-color: var(--bronze); flex-shrink: 0; cursor: pointer; }
+.fdrop-item-main { display: flex; flex-direction: column; gap: 1px; }
+.fdrop-item-main b { font-weight: 700; color: var(--ink); }
+.fdrop-item-desc { font-size: 11px; color: var(--ink-soft); }
+.fdrop-empty { padding: 14px; font-size: 12px; color: var(--ink-soft); text-align: center; }
+
 .filter-match-count {
   font-size: 11.5px;
   color: var(--ink-soft);
@@ -1098,6 +1177,7 @@ header.topbar {
   .tile .rtype { font-size: 7.5px; }
   .brand .tagline { display: none; }
   .search-dropdown { width: 220px; }
+  .fdrop-panel { width: 240px; }
   .overview-stats { grid-template-columns: repeat(2, 1fr); }
   .ov-floor-card { flex-wrap: wrap; }
   .tour-card { width: 240px; }

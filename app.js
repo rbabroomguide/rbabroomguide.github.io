@@ -9,6 +9,12 @@ const TYPE_COLOR = {
   SKC: "var(--c-skc)", SKD: "var(--c-skd)", SKP: "var(--c-skp)", SXA: "var(--c-sxa)", PI: "var(--c-pi)",
 };
 
+const TYPE_DESC = {
+  KGA: "Deluxe King Garden", KGAOV: "Deluxe King View", KGE: "Premium King Garden", KGEOV: "Premium King View",
+  PI: "Posting Interface", SKA: "Kids Escape Suite", SKB: "Family Room Garden", SKC: "Family Room View",
+  SKD: "Junior Suite", SKP: "Senior Suite", SXA: "King Suite", TWA: "Deluxe Twin Garden", TWAOV: "Deluxe Twin View",
+};
+
 // Feature code meanings, confirmed against the hotel's official Opera code list.
 const GLOSSARY = {
   BAL:    { label: "Balcony", conf: "high" },
@@ -341,40 +347,15 @@ function buildFilterBar(rooms) {
   const bar = $("#filterBar");
   bar.innerHTML = "";
 
-  // Source every type/code from ALL rooms in ALL buildings, not just the current floor,
-  // so every category the hotel has is always selectable.
   const allRooms = allRoomsFlat().map((x) => x.room);
 
-  const types = Array.from(new Set(allRooms.map((r) => r.type))).sort();
-  types.forEach((t) => {
-    const chip = document.createElement("button");
-    chip.className = "filter-chip";
-    chip.textContent = t;
-    chip.addEventListener("click", () => {
-      if (filters.types.has(t)) filters.types.delete(t); else filters.types.add(t);
-      chip.classList.toggle("active");
-      applyFilters();
-    });
-    bar.appendChild(chip);
-  });
+  const typeOptions = Array.from(new Set(allRooms.map((r) => r.type))).sort()
+    .map((t) => ({ value: t, desc: TYPE_DESC[t] || "" }));
+  buildDropdownFilter(bar, "Category", typeOptions, filters.types, () => applyFilters());
 
-  const sep1 = document.createElement("div");
-  sep1.className = "filter-sep";
-  bar.appendChild(sep1);
-
-  const codes = Array.from(new Set(allRooms.flatMap((r) => r.codes))).sort();
-  codes.forEach((c) => {
-    const chip = document.createElement("button");
-    chip.className = "filter-chip";
-    chip.textContent = c;
-    chip.title = GLOSSARY[c] ? GLOSSARY[c].label : "Meaning not yet confirmed";
-    chip.addEventListener("click", () => {
-      if (filters.codes.has(c)) filters.codes.delete(c); else filters.codes.add(c);
-      chip.classList.toggle("active");
-      applyFilters();
-    });
-    bar.appendChild(chip);
-  });
+  const codeOptions = Array.from(new Set(allRooms.flatMap((r) => r.codes))).sort()
+    .map((c) => ({ value: c, desc: GLOSSARY[c] ? GLOSSARY[c].label : "Meaning not yet confirmed" }));
+  buildDropdownFilter(bar, "Features", codeOptions, filters.codes, () => applyFilters());
 
   const sep2 = document.createElement("div");
   sep2.className = "filter-sep";
@@ -383,6 +364,7 @@ function buildFilterBar(rooms) {
   const connChip = document.createElement("button");
   connChip.className = "filter-chip";
   connChip.textContent = "Interconnecting only";
+  connChip.classList.toggle("active", filters.connectOnly);
   connChip.addEventListener("click", () => {
     filters.connectOnly = !filters.connectOnly;
     connChip.classList.toggle("active");
@@ -407,6 +389,69 @@ function buildFilterBar(rooms) {
   bar.appendChild(count);
 
   applyFilters();
+}
+
+function buildDropdownFilter(bar, label, options, selectedSet, onChange) {
+  const wrap = document.createElement("div");
+  wrap.className = "fdrop";
+
+  const btn = document.createElement("button");
+  btn.className = "fdrop-btn";
+  btn.innerHTML = `${label} <span class="fdrop-count">${selectedSet.size}</span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>`;
+  wrap.appendChild(btn);
+
+  const panel = document.createElement("div");
+  panel.className = "fdrop-panel";
+  panel.innerHTML = `
+    <div class="fdrop-search-wrap"><input type="text" class="fdrop-search" placeholder="Search ${label.toLowerCase()}..."></div>
+    <div class="fdrop-list"></div>`;
+  wrap.appendChild(panel);
+
+  const list = $(".fdrop-list", panel);
+  const searchInput = $(".fdrop-search", panel);
+
+  function renderList(filterText) {
+    const q = (filterText || "").trim().toLowerCase();
+    const filtered = options.filter((o) => !q || o.value.toLowerCase().includes(q) || o.desc.toLowerCase().includes(q));
+    if (!filtered.length) {
+      list.innerHTML = `<div class="fdrop-empty">No matches</div>`;
+      return;
+    }
+    list.innerHTML = filtered.map((o) => `
+      <label class="fdrop-item">
+        <input type="checkbox" value="${o.value}" ${selectedSet.has(o.value) ? "checked" : ""}>
+        <span class="fdrop-item-main"><b>${o.value}</b>${o.desc ? `<span class="fdrop-item-desc">${o.desc}</span>` : ""}</span>
+      </label>`).join("");
+    $$('input[type="checkbox"]', list).forEach((cb) => {
+      cb.addEventListener("change", () => {
+        if (cb.checked) selectedSet.add(cb.value); else selectedSet.delete(cb.value);
+        updateBtnState();
+        onChange();
+      });
+    });
+  }
+
+  function updateBtnState() {
+    btn.classList.toggle("has-selection", selectedSet.size > 0);
+    $(".fdrop-count", btn).textContent = selectedSet.size;
+  }
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const wasOpen = wrap.classList.contains("open");
+    $$(".fdrop.open").forEach((el) => el.classList.remove("open"));
+    if (!wasOpen) {
+      wrap.classList.add("open");
+      renderList("");
+      searchInput.value = "";
+      searchInput.focus();
+    }
+  });
+  searchInput.addEventListener("input", () => renderList(searchInput.value));
+  panel.addEventListener("click", (e) => e.stopPropagation());
+
+  updateBtnState();
+  bar.appendChild(wrap);
 }
 
 function filtersActive() {
@@ -750,6 +795,7 @@ function setupShortcuts() {
       else if ($("#overviewModal").classList.contains("show")) closeOverview();
       else if ($("#dashboardModal").classList.contains("show")) closeDashboard();
       else if ($("#glossaryModal").classList.contains("show")) closeGlossary();
+      else if ($$(".fdrop.open").length) $$(".fdrop.open").forEach((el) => el.classList.remove("open"));
       else if (typing) document.activeElement.blur();
       else clearDetail();
       return;
@@ -794,7 +840,7 @@ function setupAuthGate() {
 const TOUR_STEPS = [
   { sel: "#buildingTabs", title: "Switch buildings", text: "Jump between Zumroud, Amwaj, and Marmar here." },
   { sel: "#floorTabs", title: "Pick a floor", text: "Each building's floors are listed here." },
-  { sel: "#filterBar", title: "Filter the floor", text: "Isolate a room type or feature, or show only interconnecting rooms — matches in other buildings show up in the sidebar too." },
+  { sel: "#filterBar", title: "Filter the floor", text: "Search and check any room category or feature — matches highlight on the floor and show up for all 3 buildings in the sidebar." },
   { sel: "#searchWrap", title: "Jump to any room", text: "Type a room number from any building to go straight to it." },
   { sel: "#overviewBtn", title: "All-buildings overview", text: "Room counts, type breakdown, and coverage for all three buildings at a glance." },
   { sel: "#dashboardBtn", title: "Coverage dashboard", text: "See exactly which rooms still need a photo, floor by floor." },
@@ -852,6 +898,10 @@ function initApp() {
   buildBuildingTabs();
   setupSearch();
   setupShortcuts();
+
+  document.addEventListener("click", () => {
+    $$(".fdrop.open").forEach((el) => el.classList.remove("open"));
+  });
 
   $("#themeToggle").addEventListener("click", toggleTheme);
   $("#overviewBtn").addEventListener("click", openOverview);
