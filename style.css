@@ -742,6 +742,52 @@ header.topbar {
 
 .no-connect, .no-codes { color: var(--ink-soft); font-size: 13px; font-style: italic; }
 
+/* ================= Cross-building matches ================= */
+.cross-panel {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.cross-group { margin-bottom: 14px; }
+.cross-group:last-child { margin-bottom: 0; }
+.cross-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.cross-group-label .cnt { color: var(--ink-soft); font-weight: 500; }
+.cross-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.cross-chip {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.13s ease, transform 0.13s ease;
+}
+.cross-chip:hover { border-color: var(--bronze); color: var(--bronze-deep); transform: translateY(-1px); }
+.cross-empty { font-size: 12.5px; color: var(--ink-soft); font-style: italic; }
+
+.hover-preview {
+  position: fixed;
+  z-index: 150;
+  width: 200px;
+  aspect-ratio: 16/9;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border: 2px solid var(--panel);
+  display: none;
+  pointer-events: none;
+  background: var(--paper);
+}
+.hover-preview.show { display: block; }
+.hover-preview img { width: 100%; height: 100%; object-fit: cover; }
+
 /* ================= Modals (Dashboard / Glossary) ================= */
 .modal-overlay {
   position: fixed;

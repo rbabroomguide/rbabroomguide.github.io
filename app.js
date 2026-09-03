@@ -416,6 +416,15 @@ function filtersActive() {
   return filters.types.size || filters.codes.size || filters.connectOnly;
 }
 
+function roomMatchesFilters(r) {
+  if (filters.types.size && !filters.types.has(r.type)) return false;
+  if (filters.codes.size) {
+    for (const c of filters.codes) { if (!r.codes.includes(c)) return false; }
+  }
+  if (filters.connectOnly && r.connecting == null) return false;
+  return true;
+}
+
 function applyFilters() {
   const rooms = roomsForFloor(currentBuilding, currentFloor);
   const active = filtersActive();
@@ -424,13 +433,7 @@ function applyFilters() {
   rooms.forEach((r) => {
     const tile = $(`.tile.room-tile[data-room="${r.room}"]`);
     if (!tile) return;
-    let match = true;
-    if (filters.types.size && !filters.types.has(r.type)) match = false;
-    if (filters.codes.size) {
-      for (const c of filters.codes) { if (!r.codes.includes(c)) { match = false; break; } }
-    }
-    if (filters.connectOnly && r.connecting == null) match = false;
-
+    const match = roomMatchesFilters(r);
     tile.classList.toggle("filtered-out", active && !match);
     if (match) matchCount++;
   });
@@ -439,6 +442,68 @@ function applyFilters() {
   const countEl = $("#filterMatchCount");
   if (clearBtn) clearBtn.style.display = active ? "" : "none";
   if (countEl) countEl.textContent = active ? `${matchCount} of ${rooms.length} match` : "";
+
+  renderCrossBuildingPanel(active);
+}
+
+/* ================= Cross-building matches ================= */
+function renderCrossBuildingPanel(active) {
+  const panel = $("#crossPanel");
+  if (!active) { panel.style.display = "none"; return; }
+  panel.style.display = "";
+
+  const otherBuildings = RBAB_DATA.buildingOrder.filter((b) => b !== currentBuilding);
+  let html = "";
+  let totalMatches = 0;
+
+  otherBuildings.forEach((bkey) => {
+    const b = buildingData(bkey);
+    const matches = Object.values(b.rooms)
+      .filter(roomMatchesFilters)
+      .sort((a, c) => a.room - c.room);
+    totalMatches += matches.length;
+    html += `<div class="cross-group">
+      <div class="cross-group-label">${b.label} <span class="cnt">(${matches.length})</span></div>
+      <div class="cross-list">`;
+    if (matches.length) {
+      matches.forEach((r) => {
+        html += `<span class="cross-chip" data-b="${bkey}" data-r="${r.room}">${r.room}</span>`;
+      });
+    } else {
+      html += `<span class="cross-empty">No matches</span>`;
+    }
+    html += `</div></div>`;
+  });
+
+  $("#crossBody").innerHTML = html;
+
+  $$(".cross-chip", $("#crossBody")).forEach((chip) => {
+    const bkey = chip.dataset.b;
+    const rnum = chip.dataset.r;
+    const room = buildingData(bkey).rooms[rnum];
+
+    chip.addEventListener("click", () => showDetail(bkey, Number(rnum)));
+
+    if (room.hasPhoto) {
+      chip.addEventListener("mouseenter", () => {
+        const hp = $("#hoverPreview");
+        $("#hpImg").src = thumbPath(bkey, rnum);
+        hp.classList.add("show");
+      });
+      chip.addEventListener("mousemove", (e) => {
+        const hp = $("#hoverPreview");
+        let left = e.clientX + 16;
+        let top = e.clientY + 16;
+        if (left + 200 > window.innerWidth) left = e.clientX - 216;
+        if (top + 113 > window.innerHeight) top = e.clientY - 129;
+        hp.style.left = left + "px";
+        hp.style.top = top + "px";
+      });
+      chip.addEventListener("mouseleave", () => {
+        $("#hoverPreview").classList.remove("show");
+      });
+    }
+  });
 }
 
 /* ================= Detail panel ================= */
