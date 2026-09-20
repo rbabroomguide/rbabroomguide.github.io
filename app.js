@@ -9,6 +9,11 @@ const TYPE_COLOR = {
   SKC: "var(--c-skc)", SKD: "var(--c-skd)", SKP: "var(--c-skp)", SXA: "var(--c-sxa)", PI: "var(--c-pi)",
 };
 
+// Upsell grid + late checkout reference data
+const UPSELL_TIERS = [{"key": "t1", "label": "Occupancy 85\u2013100%", "extraPax": 570, "grid": {"KGA": {"KGAOV": 90, "KGE": 180, "KGEOV": 270, "SKA": 1170, "SKB": 1260, "SKC": 1350, "D2A/D2C": 1485, "D2B/D2D": 1575, "SKD": 1710, "SKP": 2250, "SXA": 3150}, "KGAOV": {"KGE": 90, "KGEOV": 180, "SKA": 1080, "SKB": 1170, "SKC": 1260, "D2A/D2C": 1395, "D2B/D2D": 1485, "SKD": 1620, "SKP": 2160, "SXA": 3060}, "KGE": {"KGEOV": 90, "SKA": 990, "SKB": 1080, "SKC": 1170, "D2A/D2C": 1305, "D2B/D2D": 1395, "SKD": 1530, "SKP": 2070, "SXA": 2970}, "KGEOV": {"SKA": 900, "SKB": 990, "SKC": 1080, "D2A/D2C": 1215, "D2B/D2D": 1305, "SKD": 1440, "SKP": 1980, "SXA": 2880}, "SKA": {"SKB": 90, "SKC": 180, "SKD": 540, "SKP": 1080, "SXA": 1980}, "SKB": {"SKC": 90, "SKD": 450, "SKP": 990, "SXA": 1890}, "SKC": {"SKD": 360, "SKP": 900, "SXA": 1800}, "D2A/D2C": {"D2B/D2D": 90, "SKD": 225, "SKP": 765, "SXA": 1665}, "D2B/D2D": {"SKD": 135, "SKP": 675, "SXA": 1575}, "SKD": {"SKP": 540, "SXA": 1440}, "SKP": {"SXA": 900}}}, {"key": "t2", "label": "Occupancy <50% or 4+ Nights", "extraPax": 570, "grid": {"KGA": {"KGAOV": 70, "KGE": 140, "KGEOV": 210, "SKA": 910, "SKB": 980, "SKC": 1050, "D2A/D2C": 1155, "D2B/D2D": 1225, "SKD": 1330, "SKP": 1750, "SXA": 2450}, "KGAOV": {"KGE": 70, "KGEOV": 140, "SKA": 840, "SKB": 910, "SKC": 980, "D2A/D2C": 1085, "D2B/D2D": 1155, "SKD": 1260, "SKP": 1680, "SXA": 2380}, "KGE": {"KGEOV": 70, "SKA": 770, "SKB": 840, "SKC": 910, "D2A/D2C": 1015, "D2B/D2D": 1085, "SKD": 1190, "SKP": 1610, "SXA": 2310}, "KGEOV": {"SKA": 700, "SKB": 770, "SKC": 840, "D2A/D2C": 945, "D2B/D2D": 1015, "SKD": 1120, "SKP": 1540, "SXA": 2240}, "SKA": {"SKB": 70, "SKC": 140, "SKD": 420, "SKP": 840, "SXA": 1540}, "SKB": {"SKC": 70, "SKD": 350, "SKP": 770, "SXA": 1470}, "SKC": {"SKD": 280, "SKP": 700, "SXA": 1400}, "D2A/D2C": {"D2B/D2D": 70, "SKD": 175, "SKP": 595, "SXA": 1295}, "D2B/D2D": {"SKD": 105, "SKP": 525, "SXA": 1225}, "SKD": {"SKP": 420, "SXA": 1120}, "SKP": {"SXA": 700}}}, {"key": "t3", "label": "Occupancy 50\u201370%", "extraPax": 485, "grid": {"KGA": {"KGAOV": 60, "KGE": 120, "KGEOV": 180, "SKA": 780, "SKB": 840, "SKC": 900, "D2A/D2C": 990, "D2B/D2D": 1050, "SKD": 1140, "SKP": 1500, "SXA": 2100}, "KGAOV": {"KGE": 60, "KGEOV": 120, "SKA": 720, "SKB": 780, "SKC": 840, "D2A/D2C": 930, "D2B/D2D": 990, "SKD": 1080, "SKP": 1440, "SXA": 2040}, "KGE": {"KGEOV": 60, "SKA": 660, "SKB": 720, "SKC": 780, "D2A/D2C": 870, "D2B/D2D": 930, "SKD": 1020, "SKP": 1380, "SXA": 1980}, "KGEOV": {"SKA": 600, "SKB": 660, "SKC": 720, "D2A/D2C": 810, "D2B/D2D": 870, "SKD": 960, "SKP": 1320, "SXA": 1920}, "SKA": {"SKB": 60, "SKC": 120, "SKD": 360, "SKP": 720, "SXA": 1320}, "SKB": {"SKC": 60, "SKD": 300, "SKP": 660, "SXA": 1260}, "SKC": {"SKD": 240, "SKP": 600, "SXA": 1200}, "D2A/D2C": {"D2B/D2D": 60, "SKD": 150, "SKP": 510, "SXA": 1110}, "D2B/D2D": {"SKD": 90, "SKP": 450, "SXA": 1050}, "SKD": {"SKP": 360, "SXA": 960}, "SKP": {"SXA": 600}}}, {"key": "t4", "label": "Occupancy 70\u201385%", "extraPax": 425, "grid": {"KGA": {"KGAOV": 50, "KGE": 100, "KGEOV": 150, "SKA": 650, "SKB": 700, "SKC": 750, "D2A/D2C": 825, "D2B/D2D": 875, "SKD": 950, "SKP": 1250, "SXA": 1750}, "KGAOV": {"KGE": 50, "KGEOV": 100, "SKA": 600, "SKB": 650, "SKC": 700, "D2A/D2C": 775, "D2B/D2D": 825, "SKD": 900, "SKP": 1200, "SXA": 1700}, "KGE": {"KGEOV": 50, "SKA": 550, "SKB": 600, "SKC": 650, "D2A/D2C": 725, "D2B/D2D": 775, "SKD": 850, "SKP": 1150, "SXA": 1650}, "KGEOV": {"SKA": 500, "SKB": 550, "SKC": 600, "D2A/D2C": 675, "D2B/D2D": 725, "SKD": 800, "SKP": 1100, "SXA": 1600}, "SKA": {"SKB": 50, "SKC": 100, "SKD": 300, "SKP": 600, "SXA": 1100}, "SKB": {"SKC": 50, "SKD": 250, "SKP": 550, "SXA": 1050}, "SKC": {"SKD": 200, "SKP": 500, "SXA": 1000}, "D2A/D2C": {"D2B/D2D": 50, "SKD": 125, "SKP": 425, "SXA": 925}, "D2B/D2D": {"SKD": 75, "SKP": 375, "SXA": 875}, "SKD": {"SKP": 300, "SXA": 800}, "SKP": {"SXA": 500}}}];
+const LATE_CHECKOUT_DATA = [{"category": "Deluxe", "time": "16:00", "charges": 400, "room": 300, "fb": 100}, {"category": "Deluxe", "time": "18:00", "charges": 600, "room": 450, "fb": 150}, {"category": "Premium / Family Suite / Interconnecting", "time": "16:00", "charges": 600, "room": 450, "fb": 150}, {"category": "Premium / Family Suite / Interconnecting", "time": "18:00", "charges": 800, "room": 600, "fb": 200}, {"category": "All Suites", "time": "16:00", "charges": 750, "room": 562.5, "fb": 187.5}, {"category": "All Suites", "time": "18:00", "charges": 950, "room": 712.5, "fb": 237.5}];
+
+
 const TYPE_DESC = {
   KGA: "Deluxe King Garden", KGAOV: "Deluxe King View", KGE: "Premium King Garden", KGEOV: "Premium King View",
   PI: "Posting Interface", SKA: "Kids Escape Suite", SKB: "Family Room Garden", SKC: "Family Room View",
@@ -662,52 +667,156 @@ function openLightbox(src, caption) {
 }
 function closeLightbox() { $("#lightbox").classList.remove("show"); }
 
-/* ================= Coverage dashboard ================= */
-function openDashboard() {
-  const wrap = $("#dashBody");
-  let html = "";
-  RBAB_DATA.buildingOrder.forEach((bkey) => {
-    const b = buildingData(bkey);
-    // PI (Posting Interface) rooms are non-guest-facing and never get a photo,
-    // so they're excluded from coverage tracking entirely.
-    const rooms = Object.values(b.rooms).filter((r) => r.type !== "PI");
-    const withPhoto = rooms.filter((r) => r.hasPhoto).length;
-    const pct = Math.round((withPhoto / rooms.length) * 100);
-    html += `<div class="dash-building">
-      <h3>${b.label} <span class="pct">${withPhoto} / ${rooms.length} rooms photographed (${pct}%)</span></h3>
-      <div class="dash-bar"><div class="dash-bar-fill" style="width:${pct}%"></div></div>`;
-    b.floorOrder.forEach((fkey) => {
-      const f = b.floors[fkey];
-      const floorRooms = rooms.filter((r) => r.floor === fkey);
-      if (!floorRooms.length) return;
-      const missing = floorRooms.filter((r) => !r.hasPhoto).map((r) => r.room).sort((a, c) => a - c);
-      html += `<div class="dash-floor-row">
-        <span><b>${f.label}</b> — ${floorRooms.length - missing.length}/${floorRooms.length}</span>
-        <span class="missing-list">${missing.length ? missing.join(", ") : "complete"}</span>
-      </div>`;
-    });
-    html += `</div>`;
-  });
-  wrap.innerHTML = html;
-  $("#dashboardModal").classList.add("show");
-}
-function closeDashboard() { $("#dashboardModal").classList.remove("show"); }
+/* ================= Upsell Grid ================= */
+let upsellOcc = "";
+let upsellNights4Plus = false;
+let upsellFrom = "";
+let upsellTo = "";
 
-/* ================= Glossary ================= */
-function openGlossary() {
-  const wrap = $("#glossBody");
-  const rows = Object.entries(GLOSSARY).sort((a, b) => a[0].localeCompare(b[0]));
-  let html = `<table class="gloss-table"><thead><tr><th>Code</th><th>Meaning</th><th>Confidence</th></tr></thead><tbody>`;
-  rows.forEach(([code, info]) => {
-    const badgeClass = info.conf === "high" ? "conf-high" : info.conf === "med" ? "conf-med" : "conf-low";
-    const badgeLabel = info.conf === "high" ? "Confirmed" : info.conf === "med" ? "Likely" : "Unconfirmed";
-    html += `<tr><td><code>${code}</code></td><td>${info.label}</td><td><span class="conf-badge ${badgeClass}">${badgeLabel}</span></td></tr>`;
-  });
-  html += `</tbody></table>`;
-  wrap.innerHTML = html;
-  $("#glossaryModal").classList.add("show");
+function upsellRowOptions(tierKey) {
+  return Object.keys(UPSELL_TIERS.find((t) => t.key === tierKey).grid);
 }
-function closeGlossary() { $("#glossaryModal").classList.remove("show"); }
+
+function upsellTierFromOccupancy(occ, nights4Plus) {
+  if (nights4Plus) return "t2";
+  if (occ === "" || occ == null || isNaN(occ)) return null;
+  const n = Number(occ);
+  if (n < 50) return "t2";
+  if (n < 70) return "t3";
+  if (n < 85) return "t4";
+  return "t1";
+}
+
+function openUpsell() {
+  upsellOcc = ""; upsellNights4Plus = false;
+  upsellFrom = ""; upsellTo = "";
+  $("#upOccInput").value = "";
+  $("#upNightsCheck").checked = false;
+  $("#upOccInput").disabled = false;
+  renderUpsellResults();
+  $("#upsellModal").classList.add("show");
+}
+function closeUpsell() { $("#upsellModal").classList.remove("show"); }
+
+function renderUpsellResults() {
+  const tierKey = upsellTierFromOccupancy(upsellOcc, upsellNights4Plus);
+  const tier = tierKey ? UPSELL_TIERS.find((t) => t.key === tierKey) : null;
+  const wrap = $("#upsellBody");
+
+  if (!tier) {
+    wrap.innerHTML = `<div class="up-prompt">Enter an occupancy % (or check "4+ nights stay") to see the matching prices.</div>`;
+    return;
+  }
+
+  let html = `<div class="up-supplement-note">Matched tier: <b>${tier.label}</b> — extra-pax supplement (if not same occupancy): <b>AED ${tier.extraPax}</b></div>
+    <div class="up-select-row">
+      <label>From <select id="upFromSelect"><option value="">Any</option>
+        ${upsellRowOptions(tierKey).map((r) => `<option value="${r}" ${r === upsellFrom ? "selected" : ""}>${r}</option>`).join("")}
+      </select></label>
+      <label>To <select id="upToSelect" ${upsellFrom ? "" : "disabled"}><option value="">Any</option>
+        ${upsellFrom ? Object.keys(tier.grid[upsellFrom] || {}).map((c) => `<option value="${c}" ${c === upsellTo ? "selected" : ""}>${c}</option>`).join("") : ""}
+      </select></label>
+    </div>`;
+
+  if (upsellFrom && upsellTo && tier.grid[upsellFrom] && tier.grid[upsellFrom][upsellTo] != null) {
+    html += `<div class="up-result"><div class="up-result-label">${upsellFrom} → ${upsellTo}</div><div class="up-result-price">AED ${tier.grid[upsellFrom][upsellTo]}</div></div>`;
+  } else if (upsellFrom && tier.grid[upsellFrom]) {
+    html += `<table class="gloss-table"><thead><tr><th>To</th><th>Price</th></tr></thead><tbody>`;
+    Object.entries(tier.grid[upsellFrom]).forEach(([to, price]) => {
+      html += `<tr><td><code>${to}</code></td><td>AED ${price}</td></tr>`;
+    });
+    html += `</tbody></table>`;
+  } else {
+    const rowKeys = upsellRowOptions(tierKey);
+    const colKeys = ["KGAOV","KGE","KGEOV","SKA","SKB","SKC","D2A/D2C","D2B/D2D","SKD","SKP","SXA"];
+    html += `<div class="up-grid-scroll"><table class="gloss-table up-full-grid"><thead><tr><th>From \\ To</th>${colKeys.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>`;
+    rowKeys.forEach((r) => {
+      html += `<tr><td><b>${r}</b></td>`;
+      colKeys.forEach((c) => {
+        const v = tier.grid[r][c];
+        html += `<td>${v != null ? v : "—"}</td>`;
+      });
+      html += `</tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+
+  wrap.innerHTML = html;
+
+  $("#upFromSelect").addEventListener("change", (e) => {
+    upsellFrom = e.target.value; upsellTo = "";
+    renderUpsellResults();
+  });
+  const toSel = $("#upToSelect");
+  if (toSel) toSel.addEventListener("change", (e) => { upsellTo = e.target.value; renderUpsellResults(); });
+}
+
+/* ================= Late Checkout ================= */
+const LC_TYPE_TIER = {
+  KGA: "Deluxe", KGAOV: "Deluxe", TWA: "Deluxe", TWAOV: "Deluxe",
+  KGE: "Premium / Family Suite / Interconnecting", KGEOV: "Premium / Family Suite / Interconnecting",
+  SKB: "Premium / Family Suite / Interconnecting", SKC: "Premium / Family Suite / Interconnecting",
+  SKD: "All Suites", SKP: "All Suites", SXA: "All Suites", SKA: "All Suites",
+};
+const LC_TIER_RANK = { "Deluxe": 0, "Premium / Family Suite / Interconnecting": 1, "All Suites": 2 };
+
+let lcType = "";
+let lcTime = "";
+
+function openLateCheckout() {
+  lcType = ""; lcTime = "";
+  renderLateCheckout();
+  $("#lateCheckoutModal").classList.add("show");
+}
+function closeLateCheckout() { $("#lateCheckoutModal").classList.remove("show"); }
+
+function lcEffectiveTier(typeCode) {
+  return LC_TYPE_TIER[typeCode] || null;
+}
+
+function renderLateCheckout() {
+  const wrap = $("#lateCheckoutBody");
+  const typeCodes = Object.keys(LC_TYPE_TIER);
+  const times = Array.from(new Set(LATE_CHECKOUT_DATA.map((r) => r.time)));
+
+  let html = `<div class="up-select-row">
+      <label>Room Type <select id="lcTypeSelect"><option value="">Any</option>
+        ${typeCodes.map((t) => `<option value="${t}" ${t === lcType ? "selected" : ""}>${t}</option>`).join("")}
+      </select></label>
+      <label>Check Out <select id="lcTimeSelect"><option value="">Any</option>
+        ${times.map((t) => `<option value="${t}" ${t === lcTime ? "selected" : ""}>${t}H</option>`).join("")}
+      </select></label>
+    </div>`;
+
+  const tier = lcType ? lcEffectiveTier(lcType) : null;
+  const matches = LATE_CHECKOUT_DATA.filter((r) => (!tier || r.category === tier) && (!lcTime || r.time === lcTime));
+
+  if (tier) {
+    html += `<div class="up-supplement-note">${lcType} falls under <b>${tier}</b> pricing.</div>`;
+  }
+
+  if (tier && lcTime && matches.length === 1) {
+    const r = matches[0];
+    html += `<div class="up-result">
+      <div class="up-result-label">${lcType} — ${r.time}H Checkout</div>
+      <div class="up-result-price">AED ${r.charges}</div>
+      <div class="lc-breakdown">
+        <span>Room Allocation <b>AED ${r.room}</b></span>
+        <span>F&amp;B Allocation <b>AED ${r.fb}</b></span>
+      </div>
+    </div>`;
+  } else {
+    html += `<table class="gloss-table"><thead><tr><th>Category</th><th>Check Out</th><th>Charges</th><th>Room Alloc.</th><th>F&amp;B Alloc.</th></tr></thead><tbody>`;
+    matches.forEach((r) => {
+      html += `<tr><td><b>${r.category}</b></td><td>${r.time}H</td><td><b>AED ${r.charges}</b></td><td>AED ${r.room}</td><td>AED ${r.fb}</td></tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+
+  wrap.innerHTML = html;
+  $("#lcTypeSelect").addEventListener("change", (e) => { lcType = e.target.value; renderLateCheckout(); });
+  $("#lcTimeSelect").addEventListener("change", (e) => { lcTime = e.target.value; renderLateCheckout(); });
+}
 
 /* ================= Search (global, live dropdown) ================= */
 function allRoomsFlat() {
@@ -793,8 +902,8 @@ function setupShortcuts() {
       if ($("#tourOverlay").classList.contains("show")) endTour();
       else if ($("#lightbox").classList.contains("show")) closeLightbox();
       else if ($("#overviewModal").classList.contains("show")) closeOverview();
-      else if ($("#dashboardModal").classList.contains("show")) closeDashboard();
-      else if ($("#glossaryModal").classList.contains("show")) closeGlossary();
+      else if ($("#lateCheckoutModal").classList.contains("show")) closeLateCheckout();
+      else if ($("#upsellModal").classList.contains("show")) closeUpsell();
       else if ($$(".fdrop.open").length) $$(".fdrop.open").forEach((el) => el.classList.remove("open"));
       else if (typing) document.activeElement.blur();
       else clearDetail();
@@ -843,8 +952,8 @@ const TOUR_STEPS = [
   { sel: "#filterBar", title: "Filter the floor", text: "Search and check any room category or feature — matches highlight on the floor and show up for all 3 buildings in the sidebar." },
   { sel: "#searchWrap", title: "Jump to any room", text: "Type a room number from any building to go straight to it." },
   { sel: "#overviewBtn", title: "All-buildings overview", text: "Room counts, type breakdown, and coverage for all three buildings at a glance." },
-  { sel: "#dashboardBtn", title: "Coverage dashboard", text: "See exactly which rooms still need a photo, floor by floor." },
-  { sel: "#glossaryBtn", title: "Feature glossary", text: "Every Opera feature code, decoded." },
+  { sel: "#upsellBtn", title: "Upselling grid", text: "Look up upgrade prices by occupancy tier, from category and to category." },
+  { sel: "#lateCheckoutBtn", title: "Late checkout", text: "Charges and room/F&B split by category and checkout time." },
 ];
 let tourIdx = 0;
 
@@ -905,14 +1014,25 @@ function initApp() {
 
   $("#themeToggle").addEventListener("click", toggleTheme);
   $("#overviewBtn").addEventListener("click", openOverview);
-  $("#dashboardBtn").addEventListener("click", openDashboard);
-  $("#glossaryBtn").addEventListener("click", openGlossary);
+  $("#upsellBtn").addEventListener("click", openUpsell);
+  $("#upOccInput").addEventListener("input", (e) => {
+    upsellOcc = e.target.value;
+    upsellFrom = ""; upsellTo = "";
+    renderUpsellResults();
+  });
+  $("#upNightsCheck").addEventListener("change", (e) => {
+    upsellNights4Plus = e.target.checked;
+    $("#upOccInput").disabled = upsellNights4Plus;
+    upsellFrom = ""; upsellTo = "";
+    renderUpsellResults();
+  });
+  $("#lateCheckoutBtn").addEventListener("click", openLateCheckout);
   $("#overviewModal").addEventListener("click", (e) => { if (e.target.id === "overviewModal") closeOverview(); });
-  $("#dashboardModal").addEventListener("click", (e) => { if (e.target.id === "dashboardModal") closeDashboard(); });
-  $("#glossaryModal").addEventListener("click", (e) => { if (e.target.id === "glossaryModal") closeGlossary(); });
+  $("#upsellModal").addEventListener("click", (e) => { if (e.target.id === "upsellModal") closeUpsell(); });
+  $("#lateCheckoutModal").addEventListener("click", (e) => { if (e.target.id === "lateCheckoutModal") closeLateCheckout(); });
   $("#overviewClose").addEventListener("click", closeOverview);
-  $("#dashboardClose").addEventListener("click", closeDashboard);
-  $("#glossaryClose").addEventListener("click", closeGlossary);
+  $("#upsellClose").addEventListener("click", closeUpsell);
+  $("#lateCheckoutClose").addEventListener("click", closeLateCheckout);
   $("#lightbox").addEventListener("click", closeLightbox);
 
   $("#tourBtn").addEventListener("click", startTour);
